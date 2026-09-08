@@ -7,12 +7,12 @@ import { Project } from '../../models/Project';
 import { Employee } from '../../models/Employee';
 import { Department } from '../../models/Department';
 import { DocumentModel } from '../../models/Document';
-import { logger } from '../../config/logger';
 import { validateEnterpriseData } from './dataValidationService';
 import {
   AnalysisOptions,
   AnomalyAnalysis,
   AnomalyItem,
+  BIRecommendation,
   BISummary,
   BusinessEvent,
   ComparisonInput,
@@ -38,7 +38,7 @@ import {
   buildForecast,
   buildTimeSeries,
   computeGrowth,
-  ForecastInput,
+  ForecastOutput,
   latestGrowth,
   round,
 } from './aggregation';
@@ -185,11 +185,12 @@ export async function getCompanyProfile(orgRef: OrgRef): Promise<CompanyProfile>
   const availableGranularities: CompanyProfile['availableGranularities'] =
     scale === 'long_term' ? ['annual', 'quarterly', 'monthly'] : ['monthly', 'weekly', 'daily'];
 
-  // Preferred granularity: pick the finest that produces >= 4 buckets.
+  // Preferred granularity: pick the coarsest that still produces >= 4 buckets so
+  // the default view is readable; the granularity selector lets users drill finer.
   const candidates = scale === 'long_term'
-    ? (['monthly', 'quarterly', 'annual'] as TimeGranularity[])
-    : (['daily', 'weekly', 'monthly'] as TimeGranularity[]);
-  let preferred = candidates[candidates.length - 1];
+    ? (['annual', 'quarterly', 'monthly'] as Exclude<TimeGranularity, 'auto'>[])
+    : (['monthly', 'weekly', 'daily'] as Exclude<TimeGranularity, 'auto'>[]);
+  let preferred: Exclude<TimeGranularity, 'auto'> = candidates[candidates.length - 1];
   for (const g of candidates) {
     const buckets = buildTimeSeries(closedWon as any, g).length;
     if (buckets >= 4) {
@@ -228,13 +229,14 @@ type NormalizedSale = {
   closedAt: Date | null;
   createdAt: Date;
   dealId: string;
+  customerId?: string;
   period?: { year: number; quarter: number; month: number };
 };
 
 /** Normalize an org dataset into simple shapes before analysis. */
 function normalize(ds: OrgDataset): { sales: NormalizedSale[]; deptNameById: Map<string, string> } {
   const deptNameById = new Map<string, string>();
-  for (const d of ds.departments) deptNameById.set(String(d._id ?? d.code), d.name || d.code);
+  for (const d of ds.departments) deptNameById.set(String((d as { _id?: unknown })._id ?? d.code), d.name || d.code);
   const sales = ds.sales.map((s) => ({
     amount: Number(s.amount) || 0,
     stage: s.stage || 'lead',
@@ -244,7 +246,8 @@ function normalize(ds: OrgDataset): { sales: NormalizedSale[]; deptNameById: Map
     departmentName: s.departmentId ? deptNameById.get(String(s.departmentId)) || 'Unassigned' : 'Unassigned',
     closedAt: s.closedAt || s.createdAt,
     createdAt: s.createdAt,
-    dealId: s.dealId || String(s._id),
+    dealId: s.dealId || String((s as { _id?: unknown })._id),
+    customerId: s.customerId ? String(s.customerId) : undefined,
     period: s.period,
   }));
   return { sales, deptNameById };
@@ -302,7 +305,7 @@ export async function getRevenueAnalysis(orgRef: OrgRef, opts: AnalysisOptions =
   };
 }
 
-export async function getSalesAnalysis(orgRef: OrgRef, opts: AnalysisOptions = {}): Promise<Omit<SalesInsight, 'breakdown'>> {
+export async function getSalesAnalysis(orgRef: OrgRef, opts: AnalysisOptions = {}): Promise<SalesAnalysisLite> {
   const profile = await getCompanyProfile(orgRef);
   const ds = await loadDataset(orgRef);
   const { sales } = normalize(ds);
@@ -345,7 +348,15 @@ export async function getSalesAnalysis(orgRef: OrgRef, opts: AnalysisOptions = {
   const byWeek = buildTimeSeries(sales as any, 'weekly', { includeOnlyClosedWon: true });
 
   return {
-    profile: profile as unknown as SalesInsight['profile'] extends never ? never : never,
+    profile: {
+      scale: profile.scale,
+      preferredGranularity: profile.preferredGranularity,
+      availableGranularities: profile.availableGranularities,
+      revenueScale: profile.revenueScale,
+      customerCount: profile.customerCount,
+      transactionCount: profile.transactionCount,
+      basisDescription: profile.basisDescription,
+    },
     totalRevenue: totalRevenue,
     totalDeals: sales.length,
     closedWonDeals: closedWon.length,
@@ -846,7 +857,7 @@ function buildRecommendations(
   return out;
 }
 
-function toForecastResult(f: ForecastInput extends never ? never : ForecastOutput): ForecastResult {
+function toForecastResult(f: ForecastOutput): ForecastResult {
   return {
     available: f.available,
     reason: f.reason,
@@ -910,7 +921,8 @@ export async function getAnomalies(orgRef: OrgRef, opts: AnalysisOptions = {}): 
 // ---------------------------------------------------------------------------
 export async function getComparison(orgRef: OrgRef, input: ComparisonInput = { dimension: 'qoq' }): Promise<ComparisonResult> {
   const ds = await loadDataset(orgRef);
-  const closed = ds.sales.filter((s) => s.stage === 'closed_won');
+  const { sales: normalizedSales } = normalize(ds);
+  const closed = normalizedSales.filter((s) => s.stage === 'closed_won');
   const dimension = input.dimension;
 
   let from: { label: string; value: number; count: number } = { label: '—', value: 0, count: 0 };
@@ -1000,6 +1012,77 @@ export async function getComparison(orgRef: OrgRef, input: ComparisonInput = { d
   evidence.push({ label: `${to.label}`, detail: `${to.value.toLocaleString()} USD across ${to.count} closed deal(s)` });
 
   return { dimension, from, to, difference, growthPct: growthPct != null ? round(growthPct) : null, direction, evidence };
+}
+
+// ---------------------------------------------------------------------------
+// RECOMMENDATIONS (deterministic, evidence-backed)
+// ---------------------------------------------------------------------------
+export async function getRecommendations(orgRef: OrgRef, opts: AnalysisOptions = {}): Promise<BIRecommendation[]> {
+  const [ds, present, future, revenue] = await Promise.all([
+    loadDataset(orgRef),
+    getPresentAnalysis(orgRef, opts),
+    getFutureAnalysis(orgRef, opts),
+    getRevenueAnalysis(orgRef, opts),
+  ]);
+
+  const out: BIRecommendation[] = [];
+
+  if (revenue.direction === 'down' && revenue.growthPct != null) {
+    out.push({
+      priority: 'high',
+      action: `Reverse the ${Math.abs(round(revenue.growthPct))}% revenue decline between ${revenue.previousLabel} and ${revenue.currentLabel}.`,
+      rationale: `Recorded closed-won revenue moved from ${Math.round(revenue.previous || 0).toLocaleString()} to ${Math.round(revenue.current).toLocaleString()} USD between the last two periods.`,
+      evidence: [`${revenue.previousLabel}: ${Math.round(revenue.previous || 0).toLocaleString()} USD`, `${revenue.currentLabel}: ${Math.round(revenue.current).toLocaleString()} USD`],
+      expectedOutcome: 'Stabilize the recorded revenue trajectory in the next period.',
+    });
+  }
+
+  const atRisk = ds.customers.filter((c) => c.status === 'at_risk');
+  if (atRisk.length) {
+    out.push({
+      priority: 'high',
+      action: `Escalate the ${atRisk.length} at-risk account(s) to retention programs before the next close cycle.`,
+      rationale: `${atRisk.length} customers carry elevated risk scores while ${present.customers.churned} have already churned.`,
+      evidence: atRisk.slice(0, 5).map((c) => `${c.name} (risk ${c.riskScore}, LTV ${Math.round(c.lifetimeValue).toLocaleString()} USD)`),
+      expectedOutcome: 'Reduce churn and protect lifetime value.',
+    });
+  }
+
+  const critical = ds.tickets.filter((t) => (t.status === 'open' || t.status === 'in_progress') && t.priority === 'critical');
+  if (critical.length) {
+    out.push({
+      priority: 'high',
+      action: `Resolve ${critical.length} critical open support ticket(s).`,
+      rationale: 'Unresolved critical tickets are the most common driver of churn on high-value accounts.',
+      evidence: [`Open tickets: ${present.operations.openTickets}`, `Satisfaction: ${present.operations.satisfactionAvg ?? 'n/a'}`],
+      expectedOutcome: 'Improve satisfaction and reduce account churn.',
+    });
+  }
+
+  const overBudget = ds.projects.filter((p) => p.budget != null && p.actualCost != null && p.actualCost > p.budget);
+  if (overBudget.length) {
+    out.push({
+      priority: 'medium',
+      action: `Re-forecast ${overBudget.length} project(s) running over their recorded budget.`,
+      rationale: 'Recorded actual cost exceeds the recorded budget for these projects.',
+      evidence: overBudget.slice(0, 5).map((p) => `${p.name}: ${Math.round(p.budget || 0).toLocaleString()} → ${Math.round(p.actualCost || 0).toLocaleString()} USD`),
+      expectedOutcome: 'Contain cost overruns and improve margin.',
+    });
+  }
+
+  if (future.revenueForecast.available) {
+    out.push({
+      priority: 'medium',
+      action: `Plan capacity for a ${future.revenueForecast.direction} revenue trajectory over the next ${future.revenueForecast.points.length} period(s).`,
+      rationale: `The trend forecast projects ${future.revenueForecast.direction} revenue with ${Math.round((future.revenueForecast.confidence || 0) * 100)}% confidence based on ${future.revenueForecast.actualPoints} actual periods.`,
+      evidence: future.revenueForecast.points.slice(0, 3).map((p) => `${p.label}: ${Math.round(p.value).toLocaleString()} USD (forecast)`),
+      expectedOutcome: 'Align spend and hiring with the projected trajectory.',
+    });
+  }
+
+  return out.length
+    ? out
+    : [{ priority: 'low', action: 'Maintain current course', rationale: 'No material anomalies detected in the recorded dataset.', evidence: [], expectedOutcome: 'No action required yet.' }];
 }
 
 // ---------------------------------------------------------------------------
