@@ -166,7 +166,10 @@ function CompanyPicker({
     setSearched(true);
     companyApi
       .search(q, { limit: 8 })
-      .then((resp) => setOptions(resp?.data?.data?.results.map((r) => r.company) || []))
+      .then((resp) => {
+        const results = resp?.data?.data?.results;
+        setOptions(Array.isArray(results) ? results.map((r) => r.company).filter(Boolean) : []);
+      })
       .catch(() => setOptions([]))
       .finally(() => setLoading(false));
   };
@@ -605,12 +608,14 @@ export default function CompanyAnalysisPanel({
 }: CompanyAnalysisPanelProps) {
   const pairValid = longCompany.trim().length >= 2 && shortCompany.trim().length >= 2;
   const lastResult = biData;
+  const longQueryText = String(biData?.companyQuery?.long ?? '').trim();
+  const shortQueryText = String(biData?.companyQuery?.short ?? '').trim();
 
   // Never show a previous analysis as if it belonged to the newly typed
   // companies — clear the view (user must re-run Analyze) once the pair drifts.
   const pairChanged =
     !!biData &&
-    (biData.companyQuery.long.trim() !== longCompany.trim() || biData.companyQuery.short.trim() !== shortCompany.trim());
+    (longQueryText !== longCompany.trim() || shortQueryText !== shortCompany.trim());
 
   const showResult = !!biData && !isLoading && !pairChanged;
 
