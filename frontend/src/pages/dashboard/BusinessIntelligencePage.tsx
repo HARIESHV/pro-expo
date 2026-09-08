@@ -715,7 +715,7 @@ export default function BusinessIntelligencePage() {
                             <p className="text-xs font-semibold text-foreground">{r.title}</p>
                             <span className="text-[11px] text-red-400 font-bold">score {r.riskScore}</span>
                           </div>
-                          <p className="text-[11px] text-muted-foreground">{r.level} · likelihood {(r.likelihood * 100).toFixed(0)}% · impact {(r.impact * 100).toFixed(0)}%</p>
+                          <p className="text-[11px] text-muted-foreground">{r.level} · likelihood {r.likelihood}% · impact {r.impact}%</p>
                         </div>
                       ))}
                     </div>

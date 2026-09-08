@@ -163,7 +163,7 @@ function summarizeCompany(c: CompanyIntelligence) {
   const forecast = c.future.available
     ? `${name} forecast (for next ${c.future.horizonYears} years) is ${c.future.trendDirection} ` +
       (c.future.projectedGrowthPct != null ? `(~${c.future.projectedGrowthPct}% per year, Forecast).` : '(Forecast).')
-    : `${name}: forecast unavailable (${c.future.reason.toLowerCase()})`;
+    : `${name}: forecast unavailable (${c.future.reason ? c.future.reason.toLowerCase() : 'no projection available'})`;
   const growthText = g != null ? `${g > 0 ? '+' : ''}${g}% (${c.present.period})` : 'Not available from the connected data source.';
   const line = currentPresent;
   return { name, line, revenueText, growthText, historical, forecast, currentPresent };

@@ -31,7 +31,7 @@ export function resolutionFor(query: string, company: ICompany | null): CompanyR
     .join(' ');
   const lc = clean.toLowerCase();
   let match: CompanyResolution['match'] = 'text';
-  if (toNameKey(company.displayName) === toNameKey(clean)) match = 'exact';
+  if (toNameKey(company.displayName || '') === toNameKey(clean)) match = 'exact';
   else if ((company.aliases || []).some((a) => a.toLowerCase() === lc)) match = 'alias';
   else if ((company.officialDomains || []).some((d) => clean.includes(d))) match = 'domain';
   else if (company.stockTicker && company.stockTicker.toLowerCase() === lc) match = 'ticker';
