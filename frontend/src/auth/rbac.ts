@@ -10,7 +10,6 @@ export type Permission =
   | 'dashboards.analytics'
   | 'dashboards.risks'
   | 'dashboards.bi'
-  | 'dashboards.di'
   | 'dashboards.documents'
   | 'dashboards.knowledge_graph'
   | 'dashboards.evaluate_graph'
@@ -19,7 +18,7 @@ export type Permission =
 // Normal Users/Students have full access to every user-facing feature.
 const USER_PERMISSIONS: Permission[] = [
   'reports.view', 'reports.generate', 'reports.export', 'reports.delete', 'reports.view_all',
-  'dashboards.executive', 'dashboards.analytics', 'dashboards.risks', 'dashboards.bi', 'dashboards.di',
+  'dashboards.executive', 'dashboards.analytics', 'dashboards.risks', 'dashboards.bi',
   'dashboards.documents', 'dashboards.knowledge_graph', 'dashboards.evaluate_graph',
   'universal_search',
 ];

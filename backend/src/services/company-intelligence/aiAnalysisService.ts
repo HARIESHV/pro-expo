@@ -265,6 +265,16 @@ function companyBlock(label: string, c: CompanyIntelligence): string {
     lines.push(`Model forecast: ${c.future.reason}`);
   }
 
+  if (c.strengths.length) {
+    lines.push('');
+    lines.push('Data-grounded strengths:');
+    for (const s of c.strengths) lines.push(`  - ${s.title}: ${truncate(s.detail, 180)}`);
+  }
+  if (c.weaknesses.length) {
+    lines.push('');
+    lines.push('Data-grounded weaknesses:');
+    for (const w of c.weaknesses) lines.push(`  - ${w.title}: ${truncate(w.detail, 180)}`);
+  }
   if (c.risks.length) {
     lines.push('');
     lines.push('Data-grounded risks:');

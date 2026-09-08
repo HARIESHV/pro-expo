@@ -72,11 +72,11 @@ export const businessIntelligenceApi = {
     api.get<ApiResponse<BISummary>>('/bi/summary', { params: params(granularity) }),
 
   // Real-world company analysis (Long vs Short) — /api/business-intelligence
-  analyze: (longCompany: string, shortCompany: string) =>
-    api.post<ApiResponse<CompanyAnalysisResult>>('/business-intelligence/analyze', { longCompany, shortCompany }),
+  analyze: (longCompany: string, shortCompany: string, signal?: AbortSignal) =>
+    api.post<ApiResponse<CompanyAnalysisResult>>('/business-intelligence/analyze', { longCompany, shortCompany }, { signal }),
 
-  refresh: (longCompany: string, shortCompany: string) =>
-    api.post<ApiResponse<CompanyAnalysisResult>>('/business-intelligence/refresh', { longCompany, shortCompany }),
+  refresh: (longCompany: string, shortCompany: string, signal?: AbortSignal) =>
+    api.post<ApiResponse<CompanyAnalysisResult>>('/business-intelligence/refresh', { longCompany, shortCompany }, { signal }),
 
   getLatest: (longCompany: string, shortCompany: string) =>
     api.get<ApiResponse<CompanyAnalysisResult>>('/business-intelligence/latest', {

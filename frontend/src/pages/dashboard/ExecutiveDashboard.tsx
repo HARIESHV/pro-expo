@@ -60,14 +60,12 @@ const QUICK_ACTIONS = [
   { to: '/chat', icon: MessageSquare, title: 'New chat', desc: 'Ask across agents & RAG' },
   { to: '/search-home', icon: Search, title: 'Universal search', desc: 'Docs, data, web & public research' },
   { to: '/documents', icon: FileText, title: 'Documents', desc: 'Manage the knowledge base' },
-  { to: '/decision-intelligence', icon: Brain, title: 'Decision intelligence', desc: 'Evaluate strategic moves' },
 ];
 
 const ONBOARDING_STEPS = [
   { to: '/documents', icon: UploadCloud, title: 'Upload a document', desc: 'Build the knowledge base your agents draw from.' },
   { to: '/search-home', icon: Search, title: 'Run a universal search', desc: 'Find anything across docs, data, and the web.' },
   { to: '/chat', icon: MessageSquare, title: 'Chat with your agents', desc: 'Ask and get evidence-backed, sourced answers.' },
-  { to: '/decision-intelligence', icon: Brain, title: 'Evaluate a decision', desc: 'Stress-test a move before you commit.' },
 ];
 
 function greetingForHour(h: number) {

@@ -60,7 +60,6 @@ export default function ReportsPage() {
     { id: 'knowledge_graph', label: 'Knowledge Graph' },
     { id: 'evaluate_graph', label: 'Evaluate Graph' },
     { id: 'business_intelligence', label: 'Business Intelligence' },
-    { id: 'decision_intelligence', label: 'Decision Intelligence' },
   ];
 
   // Check initial router state (Universal Search / Dashboard redirect)

@@ -5,13 +5,22 @@ import { getFinancialSeries } from './financialDataService';
 import { analyzeHistorical } from './historicalDataService';
 import { generateForecast } from './forecastService';
 import { generateAIInsights } from './aiAnalysisService';
+import { detectRevenueAnomalies } from './anomalyService';
 import {
   AnalyzeRequest,
+  AnomalyItem,
   BusinessAnalysisResult,
+  CompanyCapabilities,
   CompanyIntelligence,
+  CompanyProfileLite,
+  CompanyResolution,
+  CompanySegments,
   ComparisonResult,
   FinancialPoint,
+  Foresight,
   GrowthInfo,
+  HistoricalPoint,
+  NormalizedCompanyData,
   OpportunityItem,
   PresentMetrics,
   RevenueTrendSeries,
@@ -72,20 +81,38 @@ export async function analyzeCompanies(input: AnalyzeOptions, context: AnalysisC
   ]);
 
   // 2. Retrieve financial data (reported + AI-referenced estimates, cached).
+  //    Analyze retrieves when no data exists yet; Refresh always re-retrieves.
   const [longFin, shortFin] = await Promise.all([
     getFinancialSeries({
       nameKey: longResolved.resolution.nameKey || longResolved.resolution.query.toLowerCase(),
       displayName: longResolved.resolution.displayName,
       profile: longResolved.profile,
       refresh,
+      retrieveIfEmpty: !refresh,
     }),
     getFinancialSeries({
       nameKey: shortResolved.resolution.nameKey || shortResolved.resolution.query.toLowerCase(),
       displayName: shortResolved.resolution.displayName,
       profile: shortResolved.profile,
       refresh,
+      retrieveIfEmpty: !refresh,
     }),
   ]);
+
+  // Anomaly detection on each company's own retrieved time series (real data only).
+  const longAnomalies = detectRevenueAnomalies(longResolved.resolution.displayName, longFin.points);
+  const shortAnomalies = detectRevenueAnomalies(shortResolved.resolution.displayName, shortFin.points);
+
+  logger.info(
+    `[company-intelligence] BI retrieval (mode=${mode}): long="${longResolved.resolution.displayName}" ` +
+      `[${longResolved.resolution.resolved ? 'resolved' : 'unresolved'}, ${longFin.points.length} financial period(s), ` +
+      `latest=${seriesHint(longFin)}, regions=${longFin.segments.regions.length}, products=${longFin.segments.products.length}, ` +
+      `anomalies=${longAnomalies.available ? longAnomalies.items.length : 'n/a'}]; ` +
+      `short="${shortResolved.resolution.displayName}" ` +
+      `[${shortResolved.resolution.resolved ? 'resolved' : 'unresolved'}, ${shortFin.points.length} financial period(s), ` +
+      `latest=${seriesHint(shortFin)}, regions=${shortFin.segments.regions.length}, products=${shortFin.segments.products.length}, ` +
+      `anomalies=${shortAnomalies.available ? shortAnomalies.items.length : 'n/a'}].`
+  );
 
   // 3. Historical + present + forecast per company.
   const longHistorical = analyzeHistorical(longResolved.resolution.displayName, longFin.points);
@@ -97,11 +124,35 @@ export async function analyzeCompanies(input: AnalyzeOptions, context: AnalysisC
   const longForecast = generateForecast(longFin.points, 3, longFin.currency);
   const shortForecast = generateForecast(shortFin.points, 3, shortFin.currency);
 
+  // Capability map + normalized model per company, built strictly from each
+  // company's own retrieved data.
+  const longCapabilities = buildCapabilities({
+    present: longPresent,
+    historicalPoints: longHistorical.points,
+    segments: longFin.segments,
+    anomaliesAvailable: longAnomalies.available,
+    future: longForecast,
+  });
+  const shortCapabilities = buildCapabilities({
+    present: shortPresent,
+    historicalPoints: shortHistorical.points,
+    segments: shortFin.segments,
+    anomaliesAvailable: shortAnomalies.available,
+    future: shortForecast,
+  });
+
   // 4. Deterministic risks & opportunities derived from available data.
   const longRisks = deriveRisks(longResolved.resolution.displayName, longResolved.resolution.resolved, longPresent, longForecast);
   const shortRisks = deriveRisks(shortResolved.resolution.displayName, shortResolved.resolution.resolved, shortPresent, shortForecast);
   const longOpps = deriveOpportunities(longResolved.resolution.displayName, longPresent, longForecast);
   const shortOpps = deriveOpportunities(shortResolved.resolution.displayName, shortPresent, shortForecast);
+  const longStrengths = deriveStrengths(longResolved.resolution.displayName, longResolved.resolution.resolved, longResolved.profile, longPresent, longForecast);
+  const shortStrengths = deriveStrengths(shortResolved.resolution.displayName, shortResolved.resolution.resolved, shortResolved.profile, shortPresent, shortForecast);
+  const longWeaknesses = deriveWeaknesses(longResolved.resolution.displayName, longResolved.resolution.resolved, longPresent, longForecast);
+  const shortWeaknesses = deriveWeaknesses(shortResolved.resolution.displayName, shortResolved.resolution.resolved, shortPresent, shortForecast);
+
+  const longName = longResolved.resolution.displayName;
+  const shortName = shortResolved.resolution.displayName;
 
   const long: CompanyIntelligence = {
     resolution: longResolved.resolution,
@@ -110,8 +161,27 @@ export async function analyzeCompanies(input: AnalyzeOptions, context: AnalysisC
     present: longPresent,
     future: longForecast,
     momentum: longPresent.direction,
+    strengths: longStrengths,
+    weaknesses: longWeaknesses,
     risks: longRisks,
     opportunities: longOpps,
+    segments: longFin.segments,
+    anomalies: longAnomalies.items,
+    capabilities: longCapabilities,
+    normalized: buildNormalized({
+      resolution: longResolved.resolution,
+      profile: longResolved.profile,
+      points: longFin.points,
+      present: longPresent,
+      historical: longHistorical,
+      future: longForecast,
+      segments: longFin.segments,
+      risks: longRisks,
+      anomalies: longAnomalies.items,
+      capabilities: longCapabilities,
+      sourceTitles: longFin.sources.map((s) => s.title),
+      retrievedAt: analyzedAt.toISOString(),
+    }),
     notes: [...longFin.notes, ...longHistorical.notes],
   };
   const short: CompanyIntelligence = {
@@ -121,8 +191,27 @@ export async function analyzeCompanies(input: AnalyzeOptions, context: AnalysisC
     present: shortPresent,
     future: shortForecast,
     momentum: shortPresent.direction,
+    strengths: shortStrengths,
+    weaknesses: shortWeaknesses,
     risks: shortRisks,
     opportunities: shortOpps,
+    segments: shortFin.segments,
+    anomalies: shortAnomalies.items,
+    capabilities: shortCapabilities,
+    normalized: buildNormalized({
+      resolution: shortResolved.resolution,
+      profile: shortResolved.profile,
+      points: shortFin.points,
+      present: shortPresent,
+      historical: shortHistorical,
+      future: shortForecast,
+      segments: shortFin.segments,
+      risks: shortRisks,
+      anomalies: shortAnomalies.items,
+      capabilities: shortCapabilities,
+      sourceTitles: shortFin.sources.map((s) => s.title),
+      retrievedAt: analyzedAt.toISOString(),
+    }),
     notes: [...shortFin.notes, ...shortHistorical.notes],
   };
 
@@ -140,10 +229,10 @@ export async function analyzeCompanies(input: AnalyzeOptions, context: AnalysisC
   // 7. Sources + timestamps.
   const sources: SourceItem[] = [];
   for (const s of longFin.sources) {
-    sources.push({ company: longResolved.resolution.displayName, type: s.type, title: s.title, detail: s.detail });
+    sources.push({ company: longResolved.resolution.displayName, type: s.type, title: s.title, detail: s.detail, retrievedAt: s.retrievedAt, confidence: s.confidence });
   }
   for (const s of shortFin.sources) {
-    sources.push({ company: shortResolved.resolution.displayName, type: s.type, title: s.title, detail: s.detail });
+    sources.push({ company: shortResolved.resolution.displayName, type: s.type, title: s.title, detail: s.detail, retrievedAt: s.retrievedAt, confidence: s.confidence });
   }
   if (longResolved.resolution.resolved) {
     sources.push({
@@ -224,7 +313,36 @@ export async function getLatestAnalysis(orgId: string, longQuery: string, shortQ
   const { resolveCompany } = await import('./companyDataService');
   const [l, s] = await Promise.all([resolveCompany(longQuery), resolveCompany(shortQuery)]);
   const pairKey = `${l.resolution.nameKey || longQuery}|${s.resolution.nameKey || shortQuery}`;
-  return BusinessIntelligenceAnalysis.findOne({ organizationId: orgId, pairKey }).sort({ createdAt: -1 }).lean();
+  const doc = await BusinessIntelligenceAnalysis.findOne({ organizationId: orgId, pairKey }).sort({ createdAt: -1 }).lean();
+  if (!doc) return null;
+
+  // Reconstruct the public BusinessAnalysisResult shape from the stored run.
+  const stored = (doc.result ?? {}) as Record<string, unknown>;
+  const companies = stored.companies as BusinessAnalysisResult['companies'];
+  const hasData =
+    stored.hasData === true ||
+    !!companies?.long?.present?.available ||
+    !!companies?.short?.present?.available;
+  return {
+    analyzedAt: (doc.createdAt ? new Date(doc.createdAt).toISOString() : new Date().toISOString()),
+    lastUpdatedAt: (doc.updatedAt ? new Date(doc.updatedAt).toISOString() : new Date().toISOString()),
+    companyQuery: { long: doc.longCompany.query, short: doc.shortCompany.query },
+    companies,
+    revenueTrend: stored.revenueTrend as BusinessAnalysisResult['revenueTrend'],
+    growthComparison: stored.growthComparison as BusinessAnalysisResult['growthComparison'],
+    comparison: stored.comparison as BusinessAnalysisResult['comparison'],
+    aiInsights: stored.aiInsights as BusinessAnalysisResult['aiInsights'],
+    sources: (stored.sources ?? []) as BusinessAnalysisResult['sources'],
+    meta: {
+      dataAvailable: hasData,
+      forecastBasis: doc.forecastTimestamp
+        ? 'Forecast based on available historical data (stored run).'
+        : 'Forecasting unavailable — insufficient historical data.',
+      currencyNormalization: (stored.comparison as { normalization?: { basis?: string } } | undefined)?.normalization?.basis ?? 'USD',
+      notes: stored.notes as string[] ?? [],
+      analysisId: String(doc._id),
+    },
+  } as BusinessAnalysisResult;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +393,7 @@ function buildPresentMetrics(displayName: string, series: FinancialPoint[], yoy:
 // ---------------------------------------------------------------------------
 // Data-grounded risks & opportunities (never derived from invented values)
 // ---------------------------------------------------------------------------
-type ForesightLite = { available: boolean; trendDirection: string; reason: string };
+type ForesightLite = Foresight;
 
 function deriveRisks(
   displayName: string,
@@ -351,6 +469,107 @@ function deriveOpportunities(displayName: string, present: PresentMetrics, forec
     });
   }
   return opps;
+}
+
+// ---------------------------------------------------------------------------
+// Data-grounded strengths & weaknesses (also never derived from invented values)
+// ---------------------------------------------------------------------------
+function deriveStrengths(
+  displayName: string,
+  resolved: boolean,
+  profile: { revenue?: { amount?: number; currency?: string; year?: number; note?: string }; marketCap?: { amount?: number; currency?: string } },
+  present: PresentMetrics,
+  forecast: ForesightLite
+): OpportunityItem[] {
+  const strengths: OpportunityItem[] = [];
+  if (resolved) {
+    strengths.push({
+      title: 'Identified in the connected knowledge base',
+      detail: `${displayName} was resolved to a real company profile in the connected company knowledge base (real business-context facts available).`,
+      evidence: ['Resolution: company knowledge base match'],
+    });
+  }
+  if (profile.marketCap?.amount != null) {
+    strengths.push({
+      title: 'Market capitalization recorded',
+      detail: `A market capitalization figure is recorded in the connected data source.`,
+      evidence: [`Market cap: ${profile.marketCap.amount.toLocaleString()} ${(profile.marketCap.currency || 'USD').toUpperCase()}`],
+    });
+  }
+  if (present.latestRevenue != null) {
+    strengths.push({
+      title: 'Latest revenue available',
+      detail: `${displayName} has a latest available revenue figure (${present.latestRevenueLabel}).`,
+      evidence: [`Latest revenue: ${present.latestRevenue.toLocaleString()} ${present.currency}`],
+    });
+  }
+  if (present.growthPct != null && present.growthPct > 0) {
+    strengths.push({
+      title: 'Latest revenue growing',
+      detail: `Latest available revenue grew ${present.growthPct}% versus the previous recorded period (${present.period}).`,
+      evidence: [`Growth: +${present.growthPct}%`],
+    });
+  }
+  if (present.profit != null && present.profit > 0) {
+    strengths.push({
+      title: 'Latest available profitability positive',
+      detail: `Latest recorded net profit is positive${present.profitMarginPct != null ? ` (margin ${present.profitMarginPct}%)` : ''}.`,
+      evidence: [`Profit: ${present.profit.toLocaleString()} ${present.currency}`],
+    });
+  }
+  if (forecast.available && forecast.trendDirection === 'up') {
+    strengths.push({
+      title: 'Model forecast points upward',
+      detail: 'The deterministic forecast projects rising revenue over the horizon. Forecast (prediction), not guaranteed.',
+      evidence: ['Forecast from available historical values'],
+    });
+  }
+  return strengths;
+}
+
+function deriveWeaknesses(
+  displayName: string,
+  resolved: boolean,
+  present: PresentMetrics,
+  forecast: ForesightLite
+): OpportunityItem[] {
+  const weaknesses: OpportunityItem[] = [];
+  if (!resolved) {
+    weaknesses.push({
+      title: 'Not identified in the connected knowledge base',
+      detail: `${displayName} could not be resolved to a company profile, so business-context facts (products, competitors, size) are unavailable.`,
+      evidence: [],
+    });
+  }
+  if (present.latestRevenue == null) {
+    weaknesses.push({
+      title: 'Financial data gap',
+      detail: 'No reliable financial figures are connected for this company; revenue, growth, profit and forecast metrics are limited.',
+      evidence: [],
+    });
+  }
+  if (present.growthPct != null && present.growthPct < 0) {
+    weaknesses.push({
+      title: 'Latest revenue declining',
+      detail: `Latest available revenue declined ${Math.abs(present.growthPct)}% versus the previous recorded period (${present.period}).`,
+      evidence: [`Growth: ${present.growthPct}%`],
+    });
+  }
+  if (present.profit != null && present.profit < 0) {
+    weaknesses.push({
+      title: 'Latest available profit negative',
+      detail: `Latest recorded net profit is negative.`,
+      evidence: [`Profit: ${present.profit.toLocaleString()} ${present.currency}`],
+    });
+  }
+  if (forecast.available && forecast.trendDirection === 'down') {
+    weaknesses.push({
+      title: 'Model forecast projects decline',
+      detail: 'The deterministic forecast projects falling revenue over the horizon. Forecast (prediction), not guaranteed.',
+      evidence: ['Forecast from available historical values'],
+    });
+  }
+  return weaknesses;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,4 +665,101 @@ function averageConfidence(points: Array<{ confidence?: number | null }>): numbe
   const vals = points.map((p) => p.confidence).filter((c): c is number => typeof c === 'number' && Number.isFinite(c));
   if (!vals.length) return null;
   return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100;
+}
+
+function seriesHint(fin: { points: FinancialPoint[] }): string {
+  if (!fin.points.length) return 'none';
+  const latest = [...fin.points].sort((a, b) => b.year - a.year)[0];
+  return latest.revenue != null ? `${latest.year} (~$${Math.round(latest.revenue / 1e6)}M)` : `${latest.year}`;
+}
+
+// ---------------------------------------------------------------------------
+// Capability map + normalized per-company data model
+// ---------------------------------------------------------------------------
+function buildCapabilities(deps: {
+  present: PresentMetrics;
+  historicalPoints: HistoricalPoint[];
+  segments: CompanySegments;
+  anomaliesAvailable: boolean;
+  future: Foresight;
+}): CompanyCapabilities {
+  const withRevenue = deps.historicalPoints.filter((p) => p.revenue != null);
+  return {
+    revenue: deps.present.latestRevenue != null,
+    historicalRevenue: withRevenue.length >= 1,
+    growth: deps.present.growthPct != null || deps.historicalPoints.some((p) => p.growthPct != null),
+    revenueTrend: withRevenue.length >= 2,
+    regionalRevenue: deps.segments.regions.some((item) => item.sourceType === 'connected_data' || item.sourceType === 'company_knowledge_base'),
+    productRevenue: deps.segments.products.some((item) => item.sourceType === 'connected_data' || item.sourceType === 'company_knowledge_base'),
+    customerSegments: deps.segments.customerSegments.some((item) => item.sourceType === 'connected_data' || item.sourceType === 'company_knowledge_base'),
+    anomalies: deps.anomaliesAvailable,
+    accountRisks: false, // no account-level customer dataset is connected for public-company analysis
+    operations: false, // no operational dataset is connected for public-company analysis
+    forecast: deps.future.available,
+  };
+}
+
+function buildNormalized(args: {
+  resolution: CompanyResolution;
+  profile: CompanyProfileLite;
+  points: FinancialPoint[];
+  present: PresentMetrics;
+  historical: { points: HistoricalPoint[]; yoyGrowth: GrowthInfo };
+  future: Foresight;
+  segments: CompanySegments;
+  risks: RiskItem[];
+  anomalies: AnomalyItem[];
+  capabilities: CompanyCapabilities;
+  sourceTitles: string[];
+  retrievedAt: string;
+}): NormalizedCompanyData {
+  const { resolution, profile, points, present, historical, future, segments, risks, anomalies, capabilities, sourceTitles, retrievedAt } = args;
+  const usable = points.filter((p) => p.revenue != null).sort((a, b) => a.year - b.year);
+  const latest = usable.length ? usable[usable.length - 1] : null;
+  const trend: NormalizedCompanyData['financials']['revenueTrend'] = [
+    ...historical.points
+      .filter((p) => p.revenue != null)
+      .map((p) => ({ period: p.periodLabel, value: p.revenue, kind: p.kind as 'reported' | 'estimated' })),
+    ...future.points.map((f) => ({ period: f.period, value: f.value, kind: 'forecast' as const })),
+  ];
+  const availableMetrics = (Object.keys(capabilities) as Array<keyof CompanyCapabilities>).filter((k) => capabilities[k]);
+  const unavailableMetrics = (Object.keys(capabilities) as Array<keyof CompanyCapabilities>).filter((k) => !capabilities[k]);
+
+  return {
+    company: {
+      name: resolution.displayName,
+      legalName: profile.legalName,
+      ticker: profile.stockTicker,
+      identifier: resolution.nameKey || resolution.query.toLowerCase(),
+      resolved: resolution.resolved,
+    },
+    financials: {
+      currency: present.currency || 'USD',
+      historical: points,
+      latest: latest
+        ? {
+            period: latest.period,
+            revenue: latest.revenue,
+            growthPct: present.growthPct,
+            profit: present.profit,
+            currency: latest.currency || 'USD',
+            kind: latest.kind,
+          }
+        : null,
+      growth: historical.points
+        .filter((p) => p.growthPct != null)
+        .map((p) => ({ period: p.periodLabel, growthPct: p.growthPct })),
+      revenueTrend: trend,
+    },
+    segments,
+    operations: [],
+    risks,
+    anomalies,
+    metadata: {
+      sources: sourceTitles,
+      retrievedAt,
+      availableMetrics,
+      unavailableMetrics,
+    },
+  };
 }

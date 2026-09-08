@@ -401,6 +401,8 @@ export interface CompanyOpportunityItem {
   evidence: string[];
 }
 
+export type CompanyStrengthWeaknessItem = CompanyOpportunityItem;
+
 export interface CompanyIntelligence {
   resolution: CompanyResolution;
   profile: CompanyProfileLite;
@@ -414,9 +416,74 @@ export interface CompanyIntelligence {
   present: CompanyPresentMetrics;
   future: CompanyForesight;
   momentum: Direction;
+  strengths: CompanyStrengthWeaknessItem[];
+  weaknesses: CompanyStrengthWeaknessItem[];
   risks: CompanyRiskItem[];
   opportunities: CompanyOpportunityItem[];
+  segments: CompanySegments;
+  anomalies: CompanyAnomalyItem[];
+  capabilities: CompanyCapabilities;
+  normalized: NormalizedCompanyData;
   notes: string[];
+}
+
+export interface CompanyCapabilities {
+  revenue: boolean;
+  historicalRevenue: boolean;
+  growth: boolean;
+  revenueTrend: boolean;
+  regionalRevenue: boolean;
+  productRevenue: boolean;
+  customerSegments: boolean;
+  anomalies: boolean;
+  accountRisks: boolean;
+  operations: boolean;
+  forecast: boolean;
+}
+
+export interface CompanySegmentRevenueItem {
+  name: string;
+  revenue: number | null;
+  sharePct: number | null;
+  currency: string;
+  kind: FinancialKind;
+  sourceType: SourceType;
+  source: string;
+  confidence: number | null;
+  note?: string;
+}
+
+export interface CompanySegments {
+  regions: CompanySegmentRevenueItem[];
+  products: CompanySegmentRevenueItem[];
+  customerSegments: CompanySegmentRevenueItem[];
+}
+
+export interface CompanyAnomalyItem {
+  period: string;
+  metric: 'Revenue' | 'Revenue growth' | 'Net profit';
+  value: number | null;
+  expected: number | null;
+  deviationPct: number | null;
+  level: 'low' | 'medium' | 'high';
+  description: string;
+  evidence: string[];
+}
+
+export interface NormalizedCompanyData {
+  company: { name: string; legalName?: string; ticker?: string; identifier: string; resolved: boolean };
+  financials: {
+    currency: string;
+    historical: Array<Record<string, unknown>>;
+    latest: { period: string; revenue: number | null; growthPct: number | null; profit: number | null; currency: string; kind: FinancialKind | 'none' } | null;
+    growth: Array<{ period: string; growthPct: number | null }>;
+    revenueTrend: Array<{ period: string; value: number | null; kind: FinancialKind | 'forecast' }>;
+  };
+  segments: CompanySegments;
+  operations: Array<Record<string, unknown>>;
+  risks: CompanyRiskItem[];
+  anomalies: CompanyAnomalyItem[];
+  metadata: { sources: string[]; retrievedAt: string; availableMetrics: string[]; unavailableMetrics: string[] };
 }
 
 export interface CompanyRevenueTrend {

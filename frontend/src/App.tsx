@@ -18,7 +18,6 @@ const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 // Dashboard pages
 const ExecutiveDashboard = lazy(() => import('./pages/dashboard/ExecutiveDashboard'));
 const BusinessIntelligencePage = lazy(() => import('./pages/dashboard/BusinessIntelligencePage'));
-const DecisionIntelligencePage = lazy(() => import('./features/decision-intelligence/DecisionIntelligencePage'));
 
 // AI pages
 const AIChatPage = lazy(() => import('./pages/ai/AIChatPage'));
@@ -90,7 +89,6 @@ function AnimatedRoutes() {
           {/* Dashboard */}
           <Route path="/dashboard" element={<ProtectedRoute><ExecutiveDashboard /></ProtectedRoute>} />
           <Route path="/business-intelligence" element={<ProtectedRoute><BusinessIntelligencePage /></ProtectedRoute>} />
-          <Route path="/decision-intelligence" element={<ProtectedRoute><DecisionIntelligencePage /></ProtectedRoute>} />
 
           {/* AI */}
           <Route path="/chat" element={<ProtectedRoute><AIChatPage /></ProtectedRoute>} />

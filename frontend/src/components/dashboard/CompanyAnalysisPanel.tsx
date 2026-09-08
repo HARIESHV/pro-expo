@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   ResponsiveContainer,
   LineChart,
@@ -28,7 +27,6 @@ import {
   Scale,
 } from 'lucide-react';
 import { CompanyProfile } from '../../types';
-import { businessIntelligenceApi } from '../../api/businessIntelligence';
 import { companyApi } from '../../api/companies';
 import {
   CompanyAIInsights,
@@ -398,7 +396,7 @@ function TimelineChart({ info, side }: { info: CompanyIntelligence; side: 'long'
         <ChartEmpty text={info.future.reason || 'No historical or forecast data available.'} />
       )}
       {info.present.available && (
-        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
           <div>
             <p className="text-[10px] uppercase text-muted-foreground font-semibold">Latest ({info.present.latestRevenueLabel})</p>
             <p className="text-sm font-bold text-foreground">{money(info.present.latestRevenue)}</p>
@@ -406,6 +404,13 @@ function TimelineChart({ info, side }: { info: CompanyIntelligence; side: 'long'
           <div>
             <p className="text-[10px] uppercase text-muted-foreground font-semibold">Growth</p>
             <p className="text-sm font-bold text-foreground">{pct(info.present.growthPct)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Profit</p>
+            <p className="text-sm font-bold text-foreground">
+              {info.present.profit != null ? money(info.present.profit) : '—'}
+              {info.present.profitMarginPct != null ? <span className="block text-[10px] text-muted-foreground font-normal">{info.present.profitMarginPct}% margin</span> : null}
+            </p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-muted-foreground font-semibold">Direction</p>
@@ -416,6 +421,82 @@ function TimelineChart({ info, side }: { info: CompanyIntelligence; side: 'long'
           </div>
         </div>
       )}
+    </PanelCard>
+  );
+}
+
+function RisksOpportunitiesSection({ result }: { result: CompanyAnalysisResult }) {
+  const hasAny =
+    result.companies.long.risks.length ||
+    result.companies.short.risks.length ||
+    result.companies.long.opportunities.length ||
+    result.companies.short.opportunities.length ||
+    result.companies.long.strengths.length ||
+    result.companies.short.strengths.length ||
+    result.companies.long.weaknesses.length ||
+    result.companies.short.weaknesses.length;
+  if (!hasAny) {
+    return (
+      <PanelCard title="Risks & Opportunities" subtitle="Derived from gathered data">
+        <ChartEmpty text="Not enough data to derive risks, opportunities, strengths or weaknesses." />
+      </PanelCard>
+    );
+  }
+  return (
+    <PanelCard title="Strengths, Weaknesses, Risks & Opportunities" subtitle="Independently derived for each selected company from the available data">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(['long', 'short'] as const).map((side) => {
+          const info = result.companies[side];
+          const name = info.profile.displayName || side;
+          return (
+            <div key={side} className="rounded-xl bg-secondary/30 border border-border/50 p-4">
+              <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wide">{name}</p>
+              {info.strengths.length ? (
+                <div className="mb-3">
+                  <p className="text-[10px] uppercase font-semibold text-emerald-400 mb-1.5">Strengths</p>
+                  <ul className="space-y-1">
+                    {info.strengths.map((s, i) => (
+                      <li key={i} className="text-[11px] text-foreground/80 flex gap-1.5"><span className="text-emerald-400">•</span>{s.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {info.weaknesses.length ? (
+                <div className="mb-3">
+                  <p className="text-[10px] uppercase font-semibold text-amber-400 mb-1.5">Weaknesses</p>
+                  <ul className="space-y-1">
+                    {info.weaknesses.map((w, i) => (
+                      <li key={i} className="text-[11px] text-foreground/80 flex gap-1.5"><span className="text-amber-400">•</span>{w.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {info.risks.length ? (
+                <div className="mb-3">
+                  <p className="text-[10px] uppercase font-semibold text-red-400 mb-1.5">Risks</p>
+                  {info.risks.slice(0, 4).map((r, i) => (
+                    <div key={i} className="rounded-lg bg-red-500/5 border border-red-500/20 p-2.5 mb-1.5">
+                      <p className="text-[11px] font-semibold text-foreground">{r.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{r.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {info.opportunities.length ? (
+                <div>
+                  <p className="text-[10px] uppercase font-semibold text-emerald-400 mb-1.5">Opportunities</p>
+                  {info.opportunities.slice(0, 3).map((o, i) => (
+                    <div key={i} className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2.5 mb-1.5">
+                      <p className="text-[11px] font-semibold text-foreground">{o.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{o.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </PanelCard>
   );
 }
@@ -501,30 +582,37 @@ function SourcesSection({ sources }: { sources: CompanySourceItem[] }) {
 // ---------------------------------------------------------------------------
 // Main panel
 // ---------------------------------------------------------------------------
-export default function CompanyAnalysisPanel() {
-  const [longInput, setLongInput] = useState('');
-  const [shortInput, setShortInput] = useState('');
-  const [result, setResult] = useState<CompanyAnalysisResult | null>(null);
+export interface CompanyAnalysisPanelProps {
+  longCompany: string;
+  shortCompany: string;
+  onLongCompanyChange: (v: string) => void;
+  onShortCompanyChange: (v: string) => void;
+  biData: CompanyAnalysisResult | null;
+  isLoading: boolean;
+  error: string | null;
+  onAnalyze: (refresh: boolean) => void;
+}
 
-  const run = useMutation({
-    mutationFn: ({ long, short, refresh }: { long: string; short: string; refresh: boolean }) =>
-      refresh ? businessIntelligenceApi.refresh(long, short) : businessIntelligenceApi.analyze(long, short),
-    onSuccess: (data) => {
-      const r = data?.data?.data;
-      if (r) setResult(r);
-    },
-  });
+export default function CompanyAnalysisPanel({
+  longCompany,
+  shortCompany,
+  onLongCompanyChange,
+  onShortCompanyChange,
+  biData,
+  isLoading,
+  error,
+  onAnalyze,
+}: CompanyAnalysisPanelProps) {
+  const pairValid = longCompany.trim().length >= 2 && shortCompany.trim().length >= 2;
+  const lastResult = biData;
 
-  const pairValid = longInput.trim().length >= 2 && shortInput.trim().length >= 2;
-  const isLoading = run.isPending;
+  // Never show a previous analysis as if it belonged to the newly typed
+  // companies — clear the view (user must re-run Analyze) once the pair drifts.
+  const pairChanged =
+    !!biData &&
+    (biData.companyQuery.long.trim() !== longCompany.trim() || biData.companyQuery.short.trim() !== shortCompany.trim());
 
-  const analyze = (refresh: boolean) => {
-    if (!pairValid) return;
-    run.mutate({ long: longInput.trim(), short: shortInput.trim(), refresh });
-  };
-
-  // Rehydrate a stored analysis for the same pair when inputs are re-run.
-  const lastResult = result;
+  const showResult = !!biData && !isLoading && !pairChanged;
 
   return (
     <section className="space-y-6">
@@ -539,7 +627,7 @@ export default function CompanyAnalysisPanel() {
               produces forecasts, and runs a grounded AI interpretation. Results are stored per organization.
             </p>
           </div>
-          {lastResult && (
+          {lastResult && !pairChanged && (
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <Calendar className="w-3 h-3" />
               Last updated: {fmtDate(lastResult.lastUpdatedAt)}
@@ -548,21 +636,21 @@ export default function CompanyAnalysisPanel() {
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end gap-3">
-          <CompanyPicker label="Long Company" value={longInput} onChange={setLongInput} placeholder="e.g. Apple" />
+          <CompanyPicker label="Long Company" value={longCompany} onChange={onLongCompanyChange} placeholder="e.g. Apple" />
           <span className="hidden md:flex items-center pb-2.5 text-muted-foreground"><ArrowRight className="w-4 h-4" /></span>
-          <CompanyPicker label="Short Company" value={shortInput} onChange={setShortInput} placeholder="e.g. Samsung" />
+          <CompanyPicker label="Short Company" value={shortCompany} onChange={onShortCompanyChange} placeholder="e.g. Samsung" />
           <div className="flex items-end gap-2 pt-1">
             <button
-              onClick={() => analyze(false)}
+              onClick={() => onAnalyze(false)}
               disabled={!pairValid || isLoading}
               className="flex items-center gap-2 rounded-lg gradient-brand px-4 py-2 text-xs font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5" />}
               {isLoading ? 'Analyzing company data…' : 'Analyze'}
             </button>
-            {lastResult && (
+            {lastResult && !pairChanged && (
               <button
-                onClick={() => analyze(true)}
+                onClick={() => onAnalyze(true)}
                 disabled={isLoading || !pairValid}
                 className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
               >
@@ -572,14 +660,14 @@ export default function CompanyAnalysisPanel() {
           </div>
         </div>
 
-        {run.isError && (
+        {error && (
           <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-xs text-red-300">
-            {String((run.error as Error)?.message || 'Unable to analyze these companies. Please try again.')}
+            {error}
           </div>
         )}
       </div>
 
-      {isLoading && !result && (
+      {isLoading && (
         <div className="glass rounded-2xl p-10 card-glow flex flex-col items-center justify-center py-24 animate-fade-in">
           <Loader2 className="w-7 h-7 text-primary animate-spin mb-4" />
           <p className="text-sm text-foreground/80 font-medium">Analyzing company data…</p>
@@ -587,68 +675,65 @@ export default function CompanyAnalysisPanel() {
         </div>
       )}
 
-      {result && !isLoading && (
+      {showResult && biData && (
         <div className="space-y-6 animate-fade-in">
+          {(!biData.companies.long.resolution.resolved || !biData.companies.short.resolution.resolved) && (
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-xs text-amber-300">
+              Unable to identify the requested company. Please check the company name — {[biData.companies.long, biData.companies.short]
+                .filter((c) => !c.resolution.resolved)
+                .map((c) => `“${c.resolution.displayName}”`)
+                .join(' and ')} were not found in the connected knowledge base, so their analysis is limited to whatever data is available.
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground px-1">
-            <span className="inline-flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-emerald-400" /> {result.companyQuery.long}</span>
+            <span className="inline-flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-emerald-400" /> {biData.companyQuery.long}</span>
             <ArrowRight className="w-3 h-3" />
-            <span className="inline-flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-red-400" /> {result.companyQuery.short}</span>
-            <span className="ml-auto">Analysis ID: {result.meta.analysisId} · {result.meta.currencyNormalization}</span>
+            <span className="inline-flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-red-400" /> {biData.companyQuery.short}</span>
+            <span className="ml-auto">Analysis ID: {biData.meta.analysisId} · {biData.meta.currencyNormalization}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CompanyProfileCard info={result.companies.long} side="long" />
-            <CompanyProfileCard info={result.companies.short} side="short" />
+            <CompanyProfileCard info={biData.companies.long} side="long" />
+            <CompanyProfileCard info={biData.companies.short} side="short" />
           </div>
 
-          <ComparisonTiles comparison={result.comparison} />
+          <ComparisonTiles comparison={biData.comparison} />
 
-          <RevenueTrendChart result={result} />
+          <RevenueTrendChart result={biData} />
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <GrowthComparisonChart result={result} />
-            <PanelCard title="Risks & Opportunities" subtitle="Derived from gathered data">
-              {result.companies.long.risks.length || result.companies.short.risks.length ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(['long', 'short'] as const).map((side) => (
-                    <div key={side}>
-                      <p className="text-xs font-semibold text-foreground mb-2 capitalize">{side} company</p>
-                      {(side === 'long' ? result.companies.long.risks : result.companies.short.risks).slice(0, 4).map((r, i) => (
-                        <div key={i} className="rounded-lg bg-red-500/5 border border-red-500/20 p-2.5 mb-2">
-                          <p className="text-xs font-semibold text-foreground">{r.title}</p>
-                          <p className="text-[11px] text-muted-foreground">{r.description}</p>
-                        </div>
-                      ))}
-                      {(side === 'long' ? result.companies.long.opportunities : result.companies.short.opportunities).slice(0, 3).map((o, i) => (
-                        <div key={i} className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2.5 mb-2">
-                          <p className="text-xs font-semibold text-foreground">{o.title}</p>
-                          <p className="text-[11px] text-muted-foreground">{o.detail}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <ChartEmpty text="Not enough data to derive risks or opportunities." />
-              )}
-            </PanelCard>
+            <GrowthComparisonChart result={biData} />
+            <TimelineChart info={biData.companies.long} side="long" />
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <TimelineChart info={result.companies.long} side="long" />
-            <TimelineChart info={result.companies.short} side="short" />
-          </div>
+          <TimelineChart info={biData.companies.short} side="short" />
 
-          <InsightsSection ai={result.aiInsights} />
-          <SourcesSection sources={result.sources} />
+          <RisksOpportunitiesSection result={biData} />
+
+          <InsightsSection ai={biData.aiInsights} />
+          <SourcesSection sources={biData.sources} />
         </div>
       )}
 
-      {!result && !isLoading && !run.isError ? (
+      {!isLoading && !showResult ? (
         <div className="glass rounded-2xl py-12 card-glow flex flex-col items-center justify-center text-center animate-fade-in">
           <Building2 className="w-8 h-8 text-muted-foreground mb-3" />
-          <p className="text-sm text-foreground/80">Pick a Long Company and a Short Company, then click Analyze.</p>
-          <p className="text-xs text-muted-foreground mt-1">Historical, present and future analysis is built from real available data.</p>
+          {pairChanged ? (
+            <>
+              <p className="text-sm text-foreground/80">Company selection changed.</p>
+              <p className="text-xs text-muted-foreground mt-1">Click Analyze to run a fresh analysis for {longCompany.trim() || '—'} vs {shortCompany.trim() || '—'}.</p>
+            </>
+          ) : biData ? (
+            <>
+              <p className="text-sm text-foreground/80">Insufficient real-world data available for the selected companies.</p>
+              <p className="text-xs text-muted-foreground mt-1">No reliable figures could be gathered; adjust the companies or use Refresh when more data is connected.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-foreground/80">Pick a Long Company and a Short Company, then click Analyze.</p>
+              <p className="text-xs text-muted-foreground mt-1">Historical, present and future analysis is built from real available data.</p>
+            </>
+          )}
         </div>
       ) : null}
     </section>

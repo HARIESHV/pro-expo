@@ -18,7 +18,6 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/search/, 'Search Results'],
   [/^\/companies/, 'Company Profile'],
   [/^\/documents/, 'Documents'],
-  [/^\/decision-intelligence/, 'Decision Intelligence'],
   [/^\/dashboard/, 'Executive Dashboard'],
   [/^\/analytics/, 'Analytics'],
   [/^\/reports/, 'Reports'],

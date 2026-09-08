@@ -39,6 +39,8 @@ export interface FinancialPoint {
   /// Currency code the amounts are expressed in.
   currency: string;
   note?: string;
+  /** When the figure was retrieved/cached (ISO). */
+  retrievedAt?: string;
 }
 
 export interface ForecastPoint {
@@ -153,6 +155,100 @@ export interface OpportunityItem {
   evidence: string[];
 }
 
+/** Data-grounded strength or weakness (derived strictly from available data). */
+export type StrengthWeaknessItem = OpportunityItem;
+
+/** A revenue slice for a region/product/customer segment (clearly labelled). */
+export interface SegmentRevenueItem {
+  name: string;
+  /** Revenue for the segment in `currency`. null when the source gave a share only. */
+  revenue: number | null;
+  /** Share of total revenue (0-100) when disclosed; null otherwise. */
+  sharePct: number | null;
+  currency: string;
+  kind: FinancialKind;
+  sourceType: SourceType;
+  source: string;
+  confidence: number | null;
+  note?: string;
+}
+
+/** Per-company segment breakdowns collected from the connected data source. */
+export interface CompanySegments {
+  regions: SegmentRevenueItem[];
+  products: SegmentRevenueItem[];
+  customerSegments: SegmentRevenueItem[];
+}
+
+/** A deviation detected on the selected company's real time-series data. */
+export interface AnomalyItem {
+  period: string;
+  metric: 'Revenue' | 'Revenue growth' | 'Net profit';
+  value: number | null;
+  expected: number | null;
+  deviationPct: number | null;
+  level: 'low' | 'medium' | 'high';
+  description: string;
+  evidence: string[];
+}
+
+/**
+ * Capability map — which BI metrics can legitimately be shown for this company
+ * given the data the connected source actually provides. Never "all true".
+ */
+export interface CompanyCapabilities {
+  revenue: boolean;
+  historicalRevenue: boolean;
+  growth: boolean;
+  revenueTrend: boolean;
+  regionalRevenue: boolean;
+  productRevenue: boolean;
+  customerSegments: boolean;
+  anomalies: boolean;
+  accountRisks: boolean;
+  operations: boolean;
+  forecast: boolean;
+}
+
+/**
+ * One consistent normalized data model per company — the shape handed to the
+ * AI layer and mirrored to the frontend so every BI widget has a single,
+ * company-tagged source of truth.
+ */
+export interface NormalizedCompanyData {
+  company: {
+    name: string;
+    legalName?: string;
+    ticker?: string;
+    identifier: string;
+    resolved: boolean;
+  };
+  financials: {
+    currency: string;
+    historical: FinancialPoint[];
+    latest: {
+      period: string;
+      revenue: number | null;
+      growthPct: number | null;
+      profit: number | null;
+      currency: string;
+      kind: FinancialKind | 'none';
+    } | null;
+    growth: Array<{ period: string; growthPct: number | null }>;
+    revenueTrend: Array<{ period: string; value: number | null; kind: 'reported' | 'estimated' | 'forecast' }>;
+  };
+  segments: CompanySegments;
+  operations: Array<Record<string, unknown>>;
+  risks: RiskItem[];
+  anomalies: AnomalyItem[];
+  metadata: {
+    sources: string[];
+    retrievedAt: string;
+    availableMetrics: string[];
+    unavailableMetrics: string[];
+  };
+}
+
 /** Per-company intelligence assembled by the analysis workflow. */
 export interface CompanyIntelligence {
   resolution: CompanyResolution;
@@ -167,8 +263,14 @@ export interface CompanyIntelligence {
   present: PresentMetrics;
   future: Foresight;
   momentum: GrowthInfo['direction'];
+  strengths: StrengthWeaknessItem[];
+  weaknesses: StrengthWeaknessItem[];
   risks: RiskItem[];
   opportunities: OpportunityItem[];
+  segments: CompanySegments;
+  anomalies: AnomalyItem[];
+  capabilities: CompanyCapabilities;
+  normalized: NormalizedCompanyData;
   notes: string[];
 }
 

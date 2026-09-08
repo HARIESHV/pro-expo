@@ -8,7 +8,6 @@ import {
   FileText,
   Sparkles,
   Bot,
-  Brain,
   Building2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +37,6 @@ const ADMIN_SUGGESTIONS = [
 const USER_SUGGESTIONS = [
   { icon: FileText, text: 'Find documents about revenue analysis' },
   { icon: Bot, text: 'Show my AI chat conversations about product roadmap' },
-  { icon: Brain, text: 'Find my decision intelligence queries about Q4 strategy' },
   { icon: FileText, text: 'Search uploaded reports from last quarter' },
 ];
 
@@ -72,9 +70,8 @@ export default function UniversalSearchPage() {
           <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted-foreground">
             Search across authorized <span className="font-medium text-foreground">Documents</span>,{' '}
             <span className="font-medium text-foreground">Knowledge Graph</span>,{' '}
-            <span className="font-medium text-foreground">Companies</span>,{' '}
-            <span className="font-medium text-foreground">AI Chat</span>, and{' '}
-            <span className="font-medium text-foreground">Decision Intelligence</span>.
+            <span className="font-medium text-foreground">Companies</span>, and{' '}
+            <span className="font-medium text-foreground">AI Chat</span>.
           </p>
         </div>
 

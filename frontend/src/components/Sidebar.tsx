@@ -4,7 +4,6 @@ import {
   Search,
   MessageSquare,
   FileText,
-  Brain,
   Home,
   BarChart3,
   BookOpen,
@@ -42,7 +41,6 @@ const primaryNav: NavItem[] = [
   { to: '/chat', icon: MessageSquare, label: 'AI Chat' },
   { to: '/search-home', icon: Search, label: 'Universal Search', permission: 'universal_search' as Permission },
   { to: '/documents', icon: FileText, label: 'Documents', permission: 'dashboards.documents' as Permission },
-  { to: '/decision-intelligence', icon: Brain, label: 'Decision Intelligence', permission: 'dashboards.di' as Permission },
 ];
 
 const overviewNav: NavItem[] = [

@@ -120,9 +120,10 @@ app.use('/api/customers', customerRoutes);
 // ---------------------------------------------------------------
 // Production single-origin hosting: serve the built frontend from
 // this API process and deep-link ALL client routes to index.html so
-// browser refreshes on /decision-intelligence?riskId=... etc. always
-// render the SPA. In development this is skipped — Vite serves the
-// frontend on its own port and proxies /api to this server.
+// browser refreshes on deep links render the SPA. In development this
+// is skipped — Vite serves the frontend on its own port and proxies
+// /api to this server. The Decision Intelligence module's APIs remain
+// mounted at /api/decisions so new dashboards can be added later.
 // ---------------------------------------------------------------
 const FRONTEND_DIST =
   env.FRONTEND_DIST || path.resolve(__dirname, '..', '..', 'frontend', 'dist');

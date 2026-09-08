@@ -68,7 +68,6 @@ export function CommandPalette({
       { id: 'nav-chat', label: 'AI Chat', description: 'Talk to your knowledge agents', icon: MessageSquare, group: 'Navigate', onSelect: () => go('/chat') },
       { id: 'nav-search', label: 'Universal Search', description: 'Search across documents and data', icon: Search, group: 'Navigate', onSelect: () => go('/search-home') },
       { id: 'nav-documents', label: 'Documents', description: 'Browse and manage documents', icon: FileText, group: 'Navigate', onSelect: () => go('/documents') },
-      { id: 'nav-di', label: 'Decision Intelligence', description: 'Evaluate strategic decisions', icon: Brain, group: 'Navigate', onSelect: () => go('/decision-intelligence') },
       { id: 'nav-dashboard', label: 'Executive Dashboard', description: 'Key metrics overview', icon: Brain, group: 'Navigate', onSelect: () => go('/dashboard') },
     ];
   }, [navigate, onOpenChange]);

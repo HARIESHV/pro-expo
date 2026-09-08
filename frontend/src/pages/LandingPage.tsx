@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   ArrowRight,
   Check,
-  Scale,
   Sparkles,
   Globe,
   Database,
@@ -55,12 +54,6 @@ const PRODUCTS = [
     desc: 'Upload PDFs, spreadsheets, CSV, and text. Content is automatically chunked and becomes part of your knowledge base.',
     points: ['Drag-and-drop uploads', 'Automatic chunking & tagging', 'Processing status tracking'],
   },
-  {
-    icon: Scale,
-    title: 'Decision Intelligence',
-    desc: 'Simulate strategic decisions against department data, budgets, and risk tolerance to surface opportunities and risks.',
-    points: ['Scenario evaluation', 'Opportunity / risk balance', 'A clear recommendation'],
-  },
 ];
 
 const STEPS = [
@@ -98,13 +91,6 @@ const TESTIMONIALS = [
   },
   {
     quote:
-      'The decision intelligence module is the killer feature. We stress-tested three strategic options in an afternoon — something that used to take weeks.',
-    name: 'Daniel Okafor',
-    role: 'Head of Strategy, Northwind Retail',
-    initials: 'DO',
-  },
-  {
-    quote:
       'Answers come back with real citations, so I trust what I read. It cut the time our analysts spend on research by nearly half.',
     name: 'Sofia Marino',
     role: 'Director of Finance, Atlas Energy',
@@ -135,7 +121,7 @@ const FAQS = [
   },
   {
     q: 'Can I try it before committing?',
-    a: 'Yes. Register for a free account and explore the full workspace — chat, search, documents, and decision intelligence — before you decide.',
+    a: 'Yes. Register for a free account and explore the full workspace — chat, search, and documents — before you decide.',
   },
 ];
 
@@ -319,7 +305,7 @@ export default function LandingPage() {
 
         <Reveal delay={160}>
           <p className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-muted-foreground sm:text-base">
-            Ask in plain language, search everything your company knows, and simulate decisions before you commit. Enterprise Intelligence Platform connects documents, data, and your knowledge graph to a team of AI agents.
+            Ask in plain language and search everything your company knows. Enterprise Intelligence Platform connects documents, data, and your knowledge graph to a team of AI agents.
           </p>
         </Reveal>
 
@@ -542,7 +528,7 @@ export default function LandingPage() {
         {/* Stats band */}
         <div className="mt-12 grid w-full max-w-4xl grid-cols-2 gap-y-8 rounded-3xl glass-strong px-6 py-9 shadow-card sm:grid-cols-4 sm:py-10">
           {[
-            { value: 4, suffix: '', label: 'product pillars' },
+            { value: 3, suffix: '', label: 'product pillars' },
             { value: 11, suffix: '', label: 'specialist agents' },
             { value: 3, suffix: '', label: 'search modes' },
             { value: 2, suffix: 's', prefix: '<', label: 'to first answers' },
@@ -567,7 +553,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
           <SectionHeading
             kicker="The platform"
-            title={<>Four superpowers, <span className="gradient-text">one workspace</span></>}
+            title={<>Three superpowers, <span className="gradient-text">one workspace</span></>}
             sub="Everything a modern team needs to turn internal knowledge into confident action."
           />
 
@@ -624,35 +610,6 @@ export default function LandingPage() {
                 <div className="mt-5 flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-2.5">
                   <Search className="h-3.5 w-3.5 text-primary" />
                   <span className="text-[12px] text-muted-foreground">impact summary for acme…</span>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Decision — large */}
-            <Reveal className="md:col-span-4" delay={120}>
-              <div className="group glass relative h-full overflow-hidden rounded-3xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop">
-                <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-accent/10 blur-3xl transition-opacity duration-300 group-hover:bg-accent/20" />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <GradientIcon icon={Scale} />
-                    <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">Decision Intelligence</h3>
-                    <p className="mt-1.5 max-w-md text-[13.5px] leading-relaxed text-muted-foreground">
-                      Simulate strategic moves against budgets, department data, and risk tolerance — with a clear recommendation.
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">/04</Badge>
-                </div>
-                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {[
-                    ['Opportunities', '2', 'text-success'],
-                    ['Risks', '1', 'text-warning'],
-                    ['Reward ratio', '3.2×', 'text-primary'],
-                  ].map(([label, val, tone]) => (
-                    <div key={label} className="rounded-xl border border-border bg-card/40 px-3.5 py-2.5">
-                      <p className="text-[11px] text-muted-foreground">{label}</p>
-                      <p className={cn('font-mono text-lg font-semibold tabular', tone)}>{val}</p>
-                    </div>
-                  ))}
                 </div>
               </div>
             </Reveal>
@@ -730,25 +687,6 @@ export default function LandingPage() {
                       <div key={label} className="rounded-lg border border-border bg-card/50 px-2.5 py-1.5">
                         <p className="text-[9.5px] uppercase tracking-wide text-muted-foreground">{label}</p>
                         <p className="font-mono text-[13px] font-medium tabular text-foreground">{val}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-              <Reveal delay={200}>
-                <div className="glass-strong mx-auto w-[80%] rounded-2xl p-4 shadow-pop">
-                  <p className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
-                    <Scale className="h-3.5 w-3.5 text-primary" /> Decision · Expand south
-                  </p>
-                  <div className="mt-3 space-y-2">
-                    {[['Opportunity score', 78], ['Risk exposure', 34]].map(([label, pct]) => (
-                      <div key={label as string}>
-                        <div className="flex justify-between text-[10.5px] text-muted-foreground">
-                          <span>{label}</span><span className="tabular">{pct}%</span>
-                        </div>
-                        <div className="mt-1 h-1.5 rounded-full bg-secondary">
-                          <div className="confidence-bar" style={{ width: `${pct}%` }} />
-                        </div>
                       </div>
                     ))}
                   </div>

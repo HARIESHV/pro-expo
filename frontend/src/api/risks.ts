@@ -9,8 +9,7 @@ export type RiskIntelligenceSource =
   | 'analytics'
   | 'business_intelligence'
   | 'knowledge_graph'
-  | 'graph_evaluation'
-  | 'decision_intelligence';
+  | 'graph_evaluation';
 
 export interface RiskEvidence {
   label: string;

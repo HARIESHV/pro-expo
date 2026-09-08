@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, TrendingDown, ShieldAlert, Activity, Loader2, RefreshCw,
   FileText, ChevronDown, ExternalLink, ShieldCheck, X, Database, Bot,
-  CheckCircle2, Globe, BarChart3, BookOpen, MessageSquare, Network,
+  CheckCircle2, Globe, BarChart3, MessageSquare, Network,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -18,7 +18,6 @@ const SOURCE_META: Record<RiskIntelligenceSource, { label: string; route: string
   business_intelligence: { label: 'BUSINESS INTELLIGENCE', route: '/business-intelligence', icon: TrendingDown, color: 'text-teal-400 bg-teal-500/10 border-teal-500/20' },
   knowledge_graph: { label: 'KNOWLEDGE GRAPH', route: '/knowledge-graph', icon: Network, color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
   graph_evaluation: { label: 'GRAPH EVALUATION', route: '/evaluate-graph', icon: ShieldCheck, color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
-  decision_intelligence: { label: 'DECISION INTELLIGENCE', route: '/decision-intelligence', icon: BookOpen, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
