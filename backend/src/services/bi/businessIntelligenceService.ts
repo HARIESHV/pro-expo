@@ -185,10 +185,11 @@ export async function getCompanyProfile(orgRef: OrgRef): Promise<CompanyProfile>
   const availableGranularities: CompanyProfile['availableGranularities'] =
     scale === 'long_term' ? ['annual', 'quarterly', 'monthly'] : ['monthly', 'weekly', 'daily'];
 
-  // Preferred granularity: pick the coarsest that still produces >= 4 buckets so
-  // the default view is readable; the granularity selector lets users drill finer.
+  // Preferred granularity: for long-term data, quarterly is the canonical
+  // strategic period (avoids partial-year distortion in YoY); short-term defaults
+  // to the coarsest readable period. The selector lets users drill further.
   const candidates = scale === 'long_term'
-    ? (['annual', 'quarterly', 'monthly'] as Exclude<TimeGranularity, 'auto'>[])
+    ? (['quarterly', 'annual', 'monthly'] as Exclude<TimeGranularity, 'auto'>[])
     : (['monthly', 'weekly', 'daily'] as Exclude<TimeGranularity, 'auto'>[]);
   let preferred: Exclude<TimeGranularity, 'auto'> = candidates[candidates.length - 1];
   for (const g of candidates) {
@@ -702,9 +703,20 @@ function computeYoY(series: DataPoint[], granularity: TimeGranularity): GrowthIn
   if (series.length < 2) return null;
   const last = series[series.length - 1];
   const lastYear = parseInt(last.key.split('-')[0], 10) || 0;
-  const match = series.filter((p) => parseInt(p.key.split('-')[0], 10) === lastYear - 1);
-  if (!match.length) return null;
-  const prev = match[match.length - 1];
+  if (!lastYear) return null;
+  const priorYear = series.filter((p) => parseInt(p.key.split('-')[0], 10) === lastYear - 1);
+  if (!priorYear.length) return null;
+
+  let prev: DataPoint | null;
+  if (granularity === 'annual') {
+    prev = priorYear[priorYear.length - 1];
+  } else {
+    // Match like-for-like periods (e.g. Q2 2026 vs Q2 2025) rather than the
+    // latest bucket of the prior year, which would mislead on partial years.
+    const suffix = last.key.slice(last.key.indexOf('-') + 1);
+    prev = priorYear.find((p) => p.key.slice(p.key.indexOf('-') + 1) === suffix) || null;
+  }
+  if (!prev) return null;
   return computeGrowth(last.value, prev.value, last.label, prev.label);
 }
 

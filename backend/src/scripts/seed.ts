@@ -361,6 +361,43 @@ async function seed() {
       satisfactionScore: 2.0,
       tags: ['competitor_loss'],
     });
+
+    const custPym = await Customer.create({
+      organizationId: org._id,
+      customerId: 'CUST-005',
+      name: 'Pym Technologies',
+      email: 'hope@company.com',
+      company: 'Pym Technologies',
+      industry: 'Nanotechnology',
+      region: 'West',
+      segment: 'mid_market',
+      status: 'active',
+      lifetimeValue: 60000,
+      acquisitionDate: new Date('2021-06-01'),
+      lastInteractionDate: new Date('2026-08-22'),
+      accountManager: employee._id,
+      riskScore: 15,
+      satisfactionScore: 7.9,
+      tags: ['long_term'],
+    });
+
+    const custKord = await Customer.create({
+      organizationId: org._id,
+      customerId: 'CUST-006',
+      name: 'Kord Industries',
+      email: 'ted@company.com',
+      company: 'Kord Industries',
+      industry: 'Consumer Technology',
+      region: 'East',
+      segment: 'smb',
+      status: 'active',
+      lifetimeValue: 45000,
+      acquisitionDate: new Date('2022-08-01'),
+      lastInteractionDate: new Date('2026-08-10'),
+      accountManager: employee._id,
+      riskScore: 30,
+      satisfactionScore: 6.8,
+    });
     logger.info('Customers created.');
 
     // 7. Create projects
@@ -538,6 +575,62 @@ async function seed() {
         notes: 'Lost deal to Competitor Y due to delays in releasing Product X engine.',
       },
     ]);
+
+    // Historical sales (2022-2025). Deterministic multi-year revenue history that
+    // unlocks long-term / quarterly / YoY analysis in Business Intelligence.
+    // Two deterministic closed-won deals per quarter; totals crafted so 2026 sees
+    // a realistic YoY slowdown (Q1 -5.5%, Q2 -40.4%) matching the narrative docs.
+    const quarterlyTargets: Record<number, number[]> = {
+      2022: [220000, 260000, 340000, 380000],
+      2023: [300000, 340000, 400000, 460000],
+      2024: [400000, 440000, 500000, 560000],
+      2025: [550000, 520000, 590000, 640000],
+    };
+    const historyCustomers = [custPym, custKord, custWayne, custStark, custLexCorp, custOscorp];
+    const historyProducts = ['Cloud Server Suite', 'Cybersecurity Gateway', 'Data Analytics Core', 'AI Prediction Module'];
+    const historyRegions = ['West', 'East', 'South', 'North'];
+    const historyChannels = ['direct', 'partner', 'online'];
+    const historySales: any[] = [];
+    for (const [yearStr, targets] of Object.entries(quarterlyTargets)) {
+      const year = Number(yearStr);
+      targets.forEach((target, qi) => {
+        const quarter = qi + 1;
+        const month = [1, 4, 7, 10][qi];
+        const closedAt = new Date(Date.UTC(year, month, 15));
+        const available = historyCustomers.filter(
+          (c) =>
+            c.acquisitionDate.getTime() <= closedAt.getTime() &&
+            (c.status !== 'churned' || (c.lastInteractionDate ?? c.acquisitionDate).getTime() >= closedAt.getTime())
+        );
+        const cust = available[(year + quarter) % available.length];
+        const prodIdx = (year * 4 + quarter) % historyProducts.length;
+        const product = historyProducts[prodIdx % historyProducts.length];
+        const category = product.includes('Security') ? 'Security' : product.includes('Analytics') ? 'Analytics' : 'Software';
+        const amountA = Math.round((target * 0.55) / 1000) * 1000;
+        const amountB = target - amountA;
+        for (const [suffix, amount] of [['A', amountA], ['B', amountB]] as const) {
+          historySales.push({
+            organizationId: org._id,
+            customerId: cust._id,
+            salesRepId: manager._id,
+            departmentId: deptSales._id,
+            dealId: `DEAL-${year}Q${quarter}-${suffix}`,
+            productName: product,
+            category,
+            amount,
+            unitPrice: amount,
+            quantity: 1,
+            region: historyRegions[(year + quarter) % historyRegions.length],
+            channel: historyChannels[(year + quarter) % historyChannels.length],
+            stage: 'closed_won',
+            closedAt,
+            probability: 100,
+            period: { year, quarter, month },
+          });
+        }
+      });
+    }
+    await SalesRecord.create(historySales);
     logger.info('Sales records created.');
 
     // 9. Create Support Tickets
@@ -634,7 +727,7 @@ async function seed() {
       `Enterprise Inc. Q2 2026 Business Performance Review
 
 This document reviews the financial and operational performance of Enterprise Inc. for the second quarter of 2026.
-Our total sales revenue for Q2 decreased to $310,000, representing a significant decline of 41.5% compared to Q1 2026, which recorded $530,000 in sales.
+Our total sales revenue for Q2 decreased to $310,000, representing a significant decline of 40.4% compared to Q1 2026, which recorded $520,000 in sales.
 This decline was primarily caused by:
 1. Product Release Delay: The R&D department, led by employee Dr. Charles Stark, delayed the release of Product X, our next-generation software package. This delay prevented the Sales department, managed by executive John Doe, from closing key pipeline deals.
 2. Mid-Market Churn: Customer churn has increased, particularly in the mid-market segment. Key customers like Stark Industries (account managed by Alice Johnson) have indicated dissatisfaction with the delay in feature releases. Stark Industries is at risk of churning due to this.
@@ -969,7 +1062,7 @@ Employee Bob Smith is assigned to resolve Stark Industries' tickets.`
           { name: 'Aggressive', outcome: 'Fast self-serve adoption displaces some direct sales capacity.' },
         ],
         supportingMetrics: [
-          { label: 'Total historic revenue', value: '$830,000' },
+          { label: 'Total historic revenue', value: '$7,730,000' },
           { label: 'Active enterprise customers', value: 3 },
           { label: 'Active at-risk customers', value: 1 },
         ],
@@ -1019,7 +1112,7 @@ Employee Bob Smith is assigned to resolve Stark Industries' tickets.`
           { name: 'Aggressive', outcome: 'Capacity frees two engineers for adjacent document-workspace features.' },
         ],
         supportingMetrics: [
-          { label: 'Total historic revenue', value: '$830,000' },
+          { label: 'Total historic revenue', value: '$7,730,000' },
           { label: 'Support tickets open', value: 1 },
         ],
         supportingDocuments: [{ title: 'Success Targets', source: 'document' }],
