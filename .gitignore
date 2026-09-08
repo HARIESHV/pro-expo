@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets — never commit API keys or credentials.
+# The running app reads secrets from backend/.env (git-ignored).
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+
+# Uploads and local data
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Tooling / editor
+.idea/
+.vscode/
+.DS_Store
+coverage/
+.nyc_output/
