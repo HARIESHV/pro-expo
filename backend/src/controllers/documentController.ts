@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
+import fs from 'node:fs';
+import path from 'path';
 import { DocumentModel } from '../models/Document';
 import { DocumentChunk } from '../models/DocumentChunk';
 import { ingestDocument } from '../ingestion/ingestionService';
 import { AppError } from '../middleware/errorHandler';
 import { ApiResponse } from '../types';
-import path from 'path';
+import { logger } from '../config/logger';
 
 export const documentController = {
   async uploadDocument(req: Request, res: Response): Promise<void> {
@@ -79,11 +81,23 @@ export const documentController = {
   },
 
   async deleteDocument(req: Request, res: Response): Promise<void> {
-    await DocumentModel.findOneAndUpdate(
-      { _id: req.params.id, organizationId: req.user!.organizationId },
-      { isDeleted: true }
-    );
+    const doc = await DocumentModel.findOne({
+      _id: req.params.id,
+      organizationId: req.user!.organizationId,
+    });
+    if (!doc) throw new AppError('Document not found', 404);
+
+    await doc.updateOne({ isDeleted: true });
     await DocumentChunk.deleteMany({ documentId: req.params.id });
+
+    if (doc.filePath) {
+      fs.promises.unlink(doc.filePath).catch((err: NodeJS.ErrnoException) => {
+        if (err.code !== 'ENOENT') {
+          logger.warn(`[Documents] Failed to remove file for deleted document ${doc._id}: ${err.message}`);
+        }
+      });
+    }
+
     res.json({ success: true, message: 'Document deleted' } as ApiResponse);
   },
 
