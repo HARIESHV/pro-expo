@@ -47,7 +47,7 @@ const userSchema = new Schema<IUser>(
     avatar: String,
     roles: {
       type: [String],
-      enum: ['super_admin', 'ceo', 'manager', 'employee', 'analyst', 'hr', 'finance', 'sales'],
+      enum: ['super_admin', 'admin', 'ceo', 'manager', 'employee', 'analyst', 'hr', 'finance', 'sales'],
       default: ['employee'],
     },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -90,8 +90,8 @@ userSchema.virtual('permissions').get(function (this: IUser) {
   return Array.from(perms);
 });
 
-// Pre-save: hash password
-userSchema.pre('save', async function (next) {
+// Pre-save: hash password (unless unchanged) and set displayName.
+userSchema.pre('save', async function (this: IUser, next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);

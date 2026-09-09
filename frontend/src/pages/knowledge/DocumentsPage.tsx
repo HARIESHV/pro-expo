@@ -28,11 +28,12 @@ import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { EmptyState, LoadingState } from '../../components/ui/states';
 import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { Spinner } from '../../components/ui/misc';
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending', dot: 'bg-warning' },
-  processing: { label: 'Processing', dot: 'bg-primary animate-pulse' },
+  processing: { label: 'Processing', dot: 'bg-orange-500 animate-pulse' },
   completed: { label: 'Completed', dot: 'bg-success' },
   failed: { label: 'Failed', dot: 'bg-destructive' },
 } as const;
@@ -66,6 +67,9 @@ export default function DocumentsPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [viewed, setViewed] = useState<Document | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteTargetTitle, setDeleteTargetTitle] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -107,8 +111,10 @@ export default function DocumentsPage() {
       fd.append('title', file.name.replace(/\.[^.]+$/, ''));
       return documentsApi.uploadDocument(fd);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      const uploadedDocument = res.data.data?.document;
+      if (uploadedDocument) setViewed(uploadedDocument);
       toast.success('Document uploaded');
     },
     onError: (err: unknown) => {
@@ -119,10 +125,17 @@ export default function DocumentsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: documentsApi.deleteDocument,
-    onSuccess: () => {
+    onSuccess: (_res, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.removeQueries({ queryKey: ['document', deletedId] });
+      queryClient.removeQueries({ queryKey: ['document-analysis', deletedId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setViewed(null);
-      toast.info('Document deleted');
+      toast.success('AI document/chat deleted successfully');
+    },
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(apiErr.response?.data?.message || apiErr.message || 'Unable to delete document');
     },
   });
 
@@ -309,7 +322,9 @@ export default function DocumentsPage() {
                             aria-label="Delete document"
                             title="Delete"
                             onClick={() => {
-                              if (window.confirm(`Delete “${doc.title}”?`)) deleteMutation.mutate(doc._id);
+                              setDeleteTargetId(doc._id);
+                              setDeleteTargetTitle(doc.title);
+                              setDeleteConfirmOpen(true);
                             }}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
@@ -404,6 +419,12 @@ export default function DocumentsPage() {
                 >
                   {(STATUS_CONFIG[viewedDoc.processingStatus] ?? STATUS_CONFIG.pending).label}
                 </Badge>
+                {viewedDoc.analysisStatus === 'completed' && (
+                  <Badge variant="success" dot="success">Analysis Completed</Badge>
+                )}
+                {viewedDoc.analysisStatus === 'failed' && (
+                  <Badge variant="destructive" dot="destructive">Analysis Failed</Badge>
+                )}
               </div>
 
               {viewedDoc.description && (
@@ -444,16 +465,43 @@ export default function DocumentsPage() {
                   <RefreshCw className="h-3.5 w-3.5" /> Reprocess
                 </Button>
               )}
-              <Button variant="outline" onClick={() => { setViewed(null); navigate(`/chat?q=${encodeURIComponent(viewedDoc.title)}`); }}>
+              <Button variant="outline" onClick={() => { setViewed(null); navigate(`/chat?documentId=${encodeURIComponent(viewedDoc._id)}`); }}>
                 <Sparkles className="h-3.5 w-3.5" /> Analyze in chat
               </Button>
-              <Button variant="destructive" onClick={() => deleteMutation.mutate(viewedDoc._id)}>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setDeleteTargetId(viewedDoc._id);
+                  setDeleteTargetTitle(viewedDoc.title);
+                  setDeleteConfirmOpen(true);
+                }}
+              >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </Button>
             </DialogFooter>
           </DialogContent>
         )}
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete document"
+        description={`Are you sure you want to delete "${deleteTargetTitle}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTargetId) {
+            deleteMutation.mutate(deleteTargetId, {
+              onSuccess: () => {
+                setDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+                setDeleteTargetTitle('');
+              },
+            });
+          }
+        }}
+      />
     </div>
   );
 }

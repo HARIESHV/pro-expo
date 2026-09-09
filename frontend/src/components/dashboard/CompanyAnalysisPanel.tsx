@@ -3,8 +3,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -22,7 +20,6 @@ import {
   TrendingDown,
   ArrowRight,
   Calendar,
-  Database,
   Crosshair,
   Scale,
 } from 'lucide-react';
@@ -52,8 +49,8 @@ const compact = (v: number | null | undefined): string => {
 const pct = (v: number | null | undefined): string => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
 const fmtDate = (iso?: string): string => (iso ? new Date(iso).toLocaleString() : '—');
 
-const TOOLTIP_STYLE = { background: 'hsl(222,47%,9%)', border: '1px solid hsl(222,47%,15%)', borderRadius: '8px' };
-const AXIS_TICK = { fill: '#6b7280', fontSize: 10 };
+const TOOLTIP_STYLE = { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--popover-foreground))' };
+const AXIS_TICK = { fill: 'hsl(var(--muted-foreground))', fontSize: 10 };
 
 // ---------------------------------------------------------------------------
 // Small structural helpers
@@ -69,15 +66,6 @@ function PanelCard({ title, subtitle, actions, children }: { title: string; subt
         {actions}
       </div>
       {children}
-    </div>
-  );
-}
-
-function ChartEmpty({ text = 'Insufficient data for reliable charting.' }: { text?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-14 text-center">
-      <Database className="w-8 h-8 text-muted-foreground mb-3" />
-      <p className="text-sm text-foreground/80">{text}</p>
     </div>
   );
 }
@@ -112,19 +100,6 @@ function useRevenueTrendRows(result: CompanyAnalysisResult | undefined) {
     short.forecast.forEach((p) => map.set(p.period, { period: p.period, ...(map.get(p.period) || {}), shortFc: p.value }));
     return [...map.values()];
   }, [result]);
-}
-
-function useTimelineRows(info: CompanyIntelligence | undefined) {
-  return useMemo(() => {
-    if (!info) return [];
-    const rows: Array<{ period: string; actual?: number | null; forecast?: number | null; type: string }> = info.historical.points.map((p) => ({
-      period: p.periodLabel,
-      actual: p.revenue,
-      type: p.kind === 'reported' ? 'actual' : 'estimated',
-    }));
-    info.future.points.forEach((p) => rows.push({ period: p.period, forecast: p.value, type: 'forecast' }));
-    return rows.sort((a, b) => a.period.localeCompare(b.period));
-  }, [info]);
 }
 
 // ---------------------------------------------------------------------------
@@ -252,11 +227,6 @@ function CompanyProfileCard({ info, side }: { info: CompanyIntelligence; side: '
         </div>
         <span className="text-[10px] uppercase px-2 py-0.5 rounded-full border font-semibold">{side} company</span>
       </div>
-      {!info.resolution.resolved && (
-        <p className="text-[11px] text-amber-400 mb-2 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-          Not found in the connected knowledge base — most facts below are unavailable.
-        </p>
-      )}
       <div className="text-[11px] text-muted-foreground space-y-1 mb-3">
         {p.industry && <p>Industry: <span className="text-foreground/80">{[p.industry, p.subIndustry].filter(Boolean).join(' / ')}</span></p>}
         {p.foundedYear && <p>Founded: <span className="text-foreground/80">{p.foundedYear}</span></p>}
@@ -316,33 +286,30 @@ function RevenueTrendChart({ result }: { result: CompanyAnalysisResult }) {
   const hasForecast = rows.some((r) => r.longFc != null || r.shortFc != null);
   const longName = result.companies.long.profile.displayName || 'Long';
   const shortName = result.companies.short.profile.displayName || 'Short';
+  if (!rows.length || (!hasActual && !hasForecast)) return null;
   return (
     <PanelCard
       title="Revenue Trend"
       subtitle={`${longName} vs ${shortName} · solid = actual/estimated, dashed = forecast`}
       actions={<div className="flex items-center gap-2">{(['reported', 'estimated', 'forecast'] as const).map((k) => <ProvenanceChip key={k} kind={k} />)}</div>}
     >
-      {rows.length && (hasActual || hasForecast) ? (
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={rows}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="period" tick={AXIS_TICK} interval="preserveStartEnd" />
-            <YAxis tick={AXIS_TICK} tickFormatter={compact} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => money(v)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="long" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name={`${longName} (actual/est.)`} connectNulls />
-            <Line type="monotone" dataKey="short" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={`${shortName} (actual/est.)`} connectNulls />
-            {hasForecast && (
-              <Line type="monotone" dataKey="longFc" stroke="#34d399" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} name={`${longName} (forecast)`} connectNulls />
-            )}
-            {hasForecast && (
-              <Line type="monotone" dataKey="shortFc" stroke="#f87171" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} name={`${shortName} (forecast)`} connectNulls />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
-      ) : (
-        <ChartEmpty text="No revenue data available from the connected data source." />
-      )}
+      <ResponsiveContainer width="100%" height={280}>
+        <ComposedChart data={rows}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="period" tick={AXIS_TICK} interval="preserveStartEnd" />
+          <YAxis tick={AXIS_TICK} tickFormatter={compact} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => money(v)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Line type="monotone" dataKey="long" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name={`${longName} (actual/est.)`} connectNulls />
+          <Line type="monotone" dataKey="short" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={`${shortName} (actual/est.)`} connectNulls />
+          {hasForecast && (
+            <Line type="monotone" dataKey="longFc" stroke="#34d399" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} name={`${longName} (forecast)`} connectNulls />
+          )}
+          {hasForecast && (
+            <Line type="monotone" dataKey="shortFc" stroke="#f87171" strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3 }} name={`${shortName} (forecast)`} connectNulls />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
     </PanelCard>
   );
 }
@@ -351,79 +318,20 @@ function GrowthComparisonChart({ result }: { result: CompanyAnalysisResult }) {
   const data = result.growthComparison.map((g) => ({ period: g.period, long: g.longGrowthPct, short: g.shortGrowthPct }));
   const longName = result.companies.long.profile.displayName || 'Long';
   const shortName = result.companies.short.profile.displayName || 'Short';
+  if (!data.length) return null;
   return (
     <PanelCard title="Growth Comparison" subtitle="Period-over-period revenue growth % per company">
-      {data.length ? (
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="period" tick={AXIS_TICK} />
-            <YAxis tick={AXIS_TICK} tickFormatter={(v: number) => `${v}%`} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`, n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="long" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name={longName} />
-            <Line type="monotone" dataKey="short" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={shortName} />
-          </LineChart>
-        </ResponsiveContainer>
-      ) : (
-        <ChartEmpty text="Not enough periods to compare growth." />
-      )}
-    </PanelCard>
-  );
-}
-
-function TimelineChart({ info, side }: { info: CompanyIntelligence; side: 'long' | 'short' }) {
-  const rows = useTimelineRows(info);
-  const color = side === 'long' ? '#10b981' : '#ef4444';
-  const hasFc = rows.some((r) => r.forecast != null);
-  return (
-    <PanelCard
-      title={`${info.profile.displayName || side} · Past → Present → Future`}
-      subtitle={`${info.historical.points.length} historical period(s) · ${info.future.points.length} projected · forecast ${pct(info.future.projectedGrowthPct)}`}
-    >
-      {info.historical.available || info.future.available ? (
-        <ResponsiveContainer width="100%" height={240}>
-          <ComposedChart data={rows}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="period" tick={AXIS_TICK} interval="preserveStartEnd" />
-            <YAxis tick={AXIS_TICK} tickFormatter={compact} />
-            <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [money(v), n]} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="actual" stroke={color} strokeWidth={2.5} dot={{ r: 3 }} name="Actual/estimated" connectNulls />
-            {hasFc && (
-              <Line type="monotone" dataKey="forecast" stroke={color} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, fill: color }} name="Forecast" connectNulls />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
-      ) : (
-        <ChartEmpty text={info.future.reason || 'No historical or forecast data available.'} />
-      )}
-      {info.present.available && (
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Latest ({info.present.latestRevenueLabel})</p>
-            <p className="text-sm font-bold text-foreground">{money(info.present.latestRevenue)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Growth</p>
-            <p className="text-sm font-bold text-foreground">{pct(info.present.growthPct)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Profit</p>
-            <p className="text-sm font-bold text-foreground">
-              {info.present.profit != null ? money(info.present.profit) : '—'}
-              {info.present.profitMarginPct != null ? <span className="block text-[10px] text-muted-foreground font-normal">{info.present.profitMarginPct}% margin</span> : null}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Direction</p>
-            <div className="flex justify-center items-center gap-1 text-sm font-bold text-foreground">
-              <DirectionIcon dir={info.present.direction} />
-              <span className="normal-case">{info.present.direction}</span>
-            </div>
-          </div>
-        </div>
-      )}
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis dataKey="period" tick={AXIS_TICK} />
+          <YAxis tick={AXIS_TICK} tickFormatter={(v: number) => `${v}%`} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, n: string) => [v==null?'—':`${v>0?'+':''}${v.toFixed(1)}%`, n]} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Line type="monotone" dataKey="long" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name={longName} />
+          <Line type="monotone" dataKey="short" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} name={shortName} />
+        </LineChart>
+      </ResponsiveContainer>
     </PanelCard>
   );
 }
@@ -438,13 +346,7 @@ function RisksOpportunitiesSection({ result }: { result: CompanyAnalysisResult }
     result.companies.short.strengths.length ||
     result.companies.long.weaknesses.length ||
     result.companies.short.weaknesses.length;
-  if (!hasAny) {
-    return (
-      <PanelCard title="Risks & Opportunities" subtitle="Derived from gathered data">
-        <ChartEmpty text="Not enough data to derive risks, opportunities, strengths or weaknesses." />
-      </PanelCard>
-    );
-  }
+  if (!hasAny) return null;
   return (
     <PanelCard title="Strengths, Weaknesses, Risks & Opportunities" subtitle="Independently derived for each selected company from the available data">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -556,28 +458,25 @@ function InsightsSection({ ai }: { ai: CompanyAIInsights }) {
 }
 
 function SourcesSection({ sources }: { sources: CompanySourceItem[] }) {
+  if (!sources.length) return null;
   return (
     <PanelCard title="Data Sources & Provenance" subtitle="Every figure is traced to a source type — nothing is silently invented">
-      {sources.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {sources.map((s, i) => (
-            <div key={i} className="rounded-xl bg-secondary/30 border border-border/50 p-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-xs font-semibold text-foreground">{s.title}</p>
-                <ProvenanceChip kind={s.type === 'forecast' ? 'forecast' : s.type === 'ai_reference' ? 'estimated' : 'reported'} />
-              </div>
-              <p className="text-[11px] text-muted-foreground">{s.detail}</p>
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                {s.company} · {s.type}
-                {s.retrievedAt ? ` · retrieved ${fmtDate(s.retrievedAt)}` : ''}
-                {s.confidence != null ? ` · confidence ${Math.round(s.confidence * 100)}%` : ''}
-              </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {sources.map((s, i) => (
+          <div key={i} className="rounded-xl bg-secondary/30 border border-border/50 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-foreground">{s.title}</p>
+              <ProvenanceChip kind={s.type === 'forecast' ? 'forecast' : s.type === 'ai_reference' ? 'estimated' : 'reported'} />
             </div>
-          ))}
-        </div>
-      ) : (
-        <ChartEmpty text="No sources recorded for this analysis." />
-      )}
+            <p className="text-[11px] text-muted-foreground">{s.detail}</p>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {s.company} · {s.type}
+              {s.retrievedAt ? ` · retrieved ${fmtDate(s.retrievedAt)}` : ''}
+              {s.confidence != null ? ` · confidence ${Math.round(s.confidence * 100)}%` : ''}
+            </p>
+          </div>
+        ))}
+      </div>
     </PanelCard>
   );
 }
@@ -682,14 +581,6 @@ export default function CompanyAnalysisPanel({
 
       {showResult && biData && (
         <div className="space-y-6 animate-fade-in">
-          {(!biData.companies.long.resolution.resolved || !biData.companies.short.resolution.resolved) && (
-            <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 text-xs text-amber-300">
-              Unable to identify the requested company. Please check the company name — {[biData.companies.long, biData.companies.short]
-                .filter((c) => !c.resolution.resolved)
-                .map((c) => `“${c.resolution.displayName}”`)
-                .join(' and ')} were not found in the connected knowledge base, so their analysis is limited to whatever data is available.
-            </div>
-          )}
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground px-1">
             <span className="inline-flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-emerald-400" /> {biData.companyQuery.long}</span>
             <ArrowRight className="w-3 h-3" />
@@ -706,12 +597,7 @@ export default function CompanyAnalysisPanel({
 
           <RevenueTrendChart result={biData} />
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <GrowthComparisonChart result={biData} />
-            <TimelineChart info={biData.companies.long} side="long" />
-          </div>
-
-          <TimelineChart info={biData.companies.short} side="short" />
+          <GrowthComparisonChart result={biData} />
 
           <RisksOpportunitiesSection result={biData} />
 
@@ -727,11 +613,6 @@ export default function CompanyAnalysisPanel({
             <>
               <p className="text-sm text-foreground/80">Company selection changed.</p>
               <p className="text-xs text-muted-foreground mt-1">Click Analyze to run a fresh analysis for {longCompany.trim() || '—'} vs {shortCompany.trim() || '—'}.</p>
-            </>
-          ) : biData ? (
-            <>
-              <p className="text-sm text-foreground/80">Insufficient real-world data available for the selected companies.</p>
-              <p className="text-xs text-muted-foreground mt-1">No reliable figures could be gathered; adjust the companies or use Refresh when more data is connected.</p>
             </>
           ) : (
             <>

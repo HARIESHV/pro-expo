@@ -60,30 +60,7 @@ interface CanvasTheme {
   halo: string;
 }
 
-const THEMES: Record<'dark' | 'light', CanvasTheme> = {
-  dark: {
-    base: '#080B14',
-    top: '#0B1020',
-    glowA: 'rgba(88,101,242,0.16)',
-    glowB: 'rgba(139,92,246,0.13)',
-    glowC: 'rgba(34,211,238,0.09)',
-    dot: 'rgba(148,163,184,0.09)',
-    edge: 'rgba(148,163,184,0.42)',
-    edgeDim: 'rgba(148,163,184,0.14)',
-    edgeBright: 'rgba(224,231,255,0.95)',
-    edgeHover: '#C7D2FE',
-    pillBg: 'rgba(10,14,28,0.72)',
-    pillBorder: 'rgba(148,163,184,0.24)',
-    pillText: '#DCE2F5',
-    nodeLabel: '#E7ECFA',
-    nodePill: 'rgba(8,11,20,0.5)',
-    nodePillBorder: 'rgba(148,163,184,0.18)',
-    fillAlpha: 0.14,
-    glowBase: 14,
-    glowHover: 26,
-    halo: 'rgba(10,14,28,0.4)',
-  },
-  light: {
+const LIGHT_THEME: CanvasTheme = {
     base: '#F6F5FB',
     top: '#EEEFFA',
     glowA: 'rgba(129,140,248,0.22)',
@@ -104,7 +81,6 @@ const THEMES: Record<'dark' | 'light', CanvasTheme> = {
     glowBase: 12,
     glowHover: 24,
     halo: 'rgba(246,245,251,0.72)',
-  },
 };
 
 function nodeColor(type: string): string {
@@ -520,7 +496,6 @@ export interface GraphCanvasHandle {
 
 interface GraphCanvasProps {
   data: GraphData;
-  theme: 'dark' | 'light';
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   selectedEdgeId?: string | null;
@@ -566,12 +541,11 @@ function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: n
 }
 
 export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>(
-  function GraphCanvas({ data, theme, selectedId, onSelect, selectedEdgeId, onEdgeSelect, className }, ref) {
+  function GraphCanvas({ data, selectedId, onSelect, selectedEdgeId, onEdgeSelect, className }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const dataRef = useRef(data);
-    const themeRef = useRef(theme);
     const selectedRef = useRef(selectedId);
     const selectedEdgeRef = useRef<string | null>(selectedEdgeId || null);
     const posRef = useRef<Map<string, Pos>>(new Map());
@@ -600,11 +574,6 @@ export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>
     useEffect(() => {
       dataRef.current = data;
     }, [data]);
-
-    useEffect(() => {
-      themeRef.current = theme;
-      dirtyRef.current = true;
-    }, [theme]);
 
     useEffect(() => {
       selectedRef.current = selectedId;
@@ -830,7 +799,7 @@ export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>
         canvas.style.width = `${w}px`;
         canvas.style.height = `${h}px`;
 
-        const th = THEMES[themeRef.current];
+        const th = LIGHT_THEME;
         const pat = document.createElement('canvas');
         pat.width = pat.height = 26;
         const pctx = pat.getContext('2d');
@@ -851,7 +820,7 @@ export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>
       return () => ro.disconnect();
     }, []);
 
-    // Fullscreen change → resize happens via RO. Mark dirty when theme toggles in fullscreen too.
+    // Fullscreen changes trigger a redraw after the resize observer updates the canvas.
     useEffect(() => {
       const onChange = () => {
         dirtyRef.current = true;
@@ -871,7 +840,7 @@ export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>
       const { w, h, dpr } = sizeRef.current;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const th = THEMES[themeRef.current];
+      const th = LIGHT_THEME;
       const { k, tx, ty } = transformRef.current;
 
       // Keep labels readable at every zoom level: their on-screen size is
@@ -1499,7 +1468,7 @@ export const GraphCanvas = React.forwardRef<GraphCanvasHandle, GraphCanvasProps>
         ref={containerRef}
         className={cn(
           'graph-overlay relative h-full w-full touch-none select-none overflow-hidden',
-          theme === 'dark' ? 'bg-[#080B14]' : 'bg-[#F6F5FB]',
+          'bg-[#F6F5FB]',
           className
         )}
       >

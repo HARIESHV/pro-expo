@@ -10,6 +10,7 @@ export interface HybridRetrievalOptions {
   topK?: number;
   vectorWeight?: number;
   keywordWeight?: number;
+  documentIds?: string[];
 }
 
 export async function hybridRetrieval(options: HybridRetrievalOptions): Promise<HybridRetrievalResult> {
@@ -21,6 +22,7 @@ export async function hybridRetrieval(options: HybridRetrievalOptions): Promise<
     topK = 10,
     vectorWeight = 0.7,
     keywordWeight = 0.3,
+    documentIds,
   } = options;
 
   const [queryEmbedding] = await Promise.all([embeddingService.generateEmbedding(query)]);
@@ -33,12 +35,14 @@ export async function hybridRetrieval(options: HybridRetrievalOptions): Promise<
       limit: topK * 2,
       accessLevels,
       departments,
+      documentIds,
     }),
     vectorSearchService.keywordSearch({
       organizationId,
       query,
       limit: topK * 2,
       accessLevels,
+      documentIds,
     }),
   ]);
 

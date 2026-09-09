@@ -6,6 +6,7 @@ interface RAGContext {
   organizationId: string;
   accessLevels: string[];
   departments?: string[];
+  documentIds?: string[];
 }
 
 export class RAGAgent {
@@ -18,6 +19,7 @@ export class RAGAgent {
         accessLevels: context.accessLevels as never[],
         departments: context.departments,
         topK: 15,
+        documentIds: context.documentIds,
       });
 
       const insights = result.chunks.slice(0, 5).map((c) => c.content.slice(0, 300));

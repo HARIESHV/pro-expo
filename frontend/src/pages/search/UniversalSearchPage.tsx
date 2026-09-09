@@ -63,8 +63,8 @@ export default function UniversalSearchPage() {
     <div className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center px-6 py-12">
       <div className="flex w-full max-w-2xl flex-col items-center animate-fade-in-up">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl gradient-brand shadow-card">
-            <Sparkles className="h-5 w-5" />
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 shadow-card">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
           <h1 className="text-lg font-semibold tracking-tight text-foreground">Universal Search</h1>
           <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted-foreground">
@@ -91,7 +91,7 @@ export default function UniversalSearchPage() {
             <button
               onClick={() => handleSearch()}
               disabled={!query.trim()}
-              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-opacity hover:bg-primary/90 disabled:opacity-50"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-orange-500 px-3.5 text-sm font-medium text-white transition-opacity hover:bg-orange-600 disabled:opacity-50"
             >
               Search <ArrowRight className="h-3.5 w-3.5" />
             </button>
@@ -136,7 +136,7 @@ export default function UniversalSearchPage() {
                 onClick={() => handleSearch(s.text, 'all')}
                 className="group flex items-start gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 text-left transition-colors hover:bg-secondary"
               >
-                <s.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                <s.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-orange-500" />
                 <span className="text-[13px] leading-snug text-secondary-foreground">{s.text}</span>
               </button>
             ))}

@@ -1,31 +1,26 @@
+import mongoose from 'mongoose';
 import { SEED_COMPANY_RECORDS } from '../data/companySeed';
 import { Company, ICompany } from '../models/Company';
 import { logger } from '../config/logger';
 
 /**
- * Seed the universal company knowledge base.
- *
- * Idempotent: upserts by the normalized `nameKey` (dedup) so re-runs never
- * create duplicates and never clobber independently-acquired records that have
- * been enriched since the seed. Only low-data-confidence seed records are
- * overwritten by newer seed versions; enriched records are preserved.
+ * Returns true only when the MongoDB driver is fully connected (readyState === 1).
+ * All database operations MUST call this before proceeding.
  */
+function isDbReady(): boolean {
+  return mongoose.connection.readyState === 1;
+}
+
 /**
  * Reconcile the live `companies` collection indexes with the current schema.
- *
- * Earlier schema versions stored a top-level `companyId` field with a UNIQUE
- * index (`companyId_1`), a NON-unique `nameKey_1`, a legacy text index
- * (`company_text_index`) and many other indexes over fields that no longer
- * exist on the model. After the model migrated, those stale indexes:
- *   - broke seeding with `E11000 duplicate key ... { companyId: null }`,
- *   - blocked the schema's required UNIQUE `nameKey_1` (`IndexKeySpecsConflict`),
- *   - blocked the schema's text index (MongoDB allows only one text index per
- *     collection), leaving `$text` company search broken.
- * `Model.syncIndexes()` drops index specs absent from the schema and creates
- * the schema's indexes; with `Company.autoIndex` disabled the build is fully
- * deterministic here. Idempotent and safe to run on every boot or seed.
+ * Drops stale indexes and creates the schema's indexes. Idempotent and safe
+ * to run on every boot.
  */
 async function reconcileCompanyIndexes(): Promise<void> {
+  if (!isDbReady()) {
+    logger.warn('[CompanySeed] Skipping index reconciliation — MongoDB not connected.');
+    return;
+  }
   try {
     await Company.syncIndexes({ continueOnError: true });
   } catch (err) {
@@ -33,12 +28,20 @@ async function reconcileCompanyIndexes(): Promise<void> {
   }
 }
 
+/**
+ * Seed the universal company knowledge base.
+ * Idempotent: upserts by the normalized `nameKey` (dedup).
+ * Completely safe to call multiple times; never crashes the server.
+ */
 export async function seedCompanies(): Promise<{ inserted: number; updated: number }> {
+  if (!isDbReady()) {
+    logger.warn('[CompanySeed] Skipping company seeding — MongoDB not connected.');
+    return { inserted: 0, updated: 0 };
+  }
+
   let inserted = 0;
   let updated = 0;
 
-  // Clear stale/conflicting indexes from earlier schema versions before
-  // inserting, otherwise most seed records fail with E11000 dup key null.
   await reconcileCompanyIndexes();
 
   for (const record of SEED_COMPANY_RECORDS) {
@@ -46,6 +49,11 @@ export async function seedCompanies(): Promise<{ inserted: number; updated: numb
     if (!key) continue;
 
     try {
+      if (!isDbReady()) {
+        logger.warn('[CompanySeed] MongoDB disconnected during seeding — aborting remaining records.');
+        break;
+      }
+
       const existing = await Company.findOne({ nameKey: key });
       if (!existing) {
         await Company.create(record);
@@ -53,7 +61,6 @@ export async function seedCompanies(): Promise<{ inserted: number; updated: numb
         continue;
       }
 
-      // Only overwrite if we have no better/newer local data.
       const existingConfidence = existing.dataConfidence || 0;
       const incomingConfidence = record.dataConfidence || 0;
       const existingVerified = existing.lastVerifiedAt;
@@ -81,6 +88,10 @@ export async function seedCompanies(): Promise<{ inserted: number; updated: numb
  * Ensure search indexes exist (idempotent).
  */
 export async function syncCompanyIndexes(): Promise<void> {
+  if (!isDbReady()) {
+    logger.warn('[CompanySeed] Skipping index sync — MongoDB not connected.');
+    return;
+  }
   try {
     await reconcileCompanyIndexes();
     logger.info('[CompanySeed] Company search indexes synchronized.');
@@ -93,7 +104,12 @@ export async function syncCompanyIndexes(): Promise<void> {
  * Count of companies in the store (used for health/debug).
  */
 export async function countCompanies(): Promise<number> {
-  return Company.estimatedDocumentCount();
+  if (!isDbReady()) return 0;
+  try {
+    return await Company.estimatedDocumentCount();
+  } catch {
+    return 0;
+  }
 }
 
 export { ICompany };

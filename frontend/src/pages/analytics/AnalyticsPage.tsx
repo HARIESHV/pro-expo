@@ -8,6 +8,9 @@ import {
 } from 'recharts';
 import { BarChart2, TrendingUp, Users, Globe, Loader2, FileText } from 'lucide-react';
 
+const CHART_TICK = { fill: 'hsl(var(--muted-foreground))', fontSize: 10 };
+const CHART_TOOLTIP = { background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--popover-foreground))' };
+
 export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { data: trendData, isLoading: trendLoading } = useQuery({
@@ -75,7 +78,7 @@ export default function AnalyticsPage() {
         <div className="flex items-center gap-2">
         <button
           onClick={() => navigate('/reports', { state: { dashboardType: 'Analytics', filters: {}, metrics: {} } })}
-          className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600"
         >
           <FileText className="w-3.5 h-3.5" /> Generate Analytics Report
         </button>
@@ -88,7 +91,7 @@ export default function AnalyticsPage() {
         <div className="glass rounded-2xl p-6 card-glow animate-fade-in flex flex-col justify-between min-h-[350px]">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
+              <TrendingUp className="w-5 h-5 text-orange-500" />
               <h2 className="font-semibold text-foreground text-sm">Revenue by Quarter</h2>
             </div>
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider font-mono ${
@@ -99,19 +102,19 @@ export default function AnalyticsPage() {
           </div>
           {trendLoading ? (
             <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="period" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="period" tick={CHART_TICK} />
+                <YAxis tick={CHART_TICK} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`} />
                 <Tooltip
-                  contentStyle={{ background: 'hsl(222,47%,9%)', border: '1px solid hsl(222,47%,15%)', borderRadius: '12px' }}
+                  contentStyle={CHART_TOOLTIP}
                   formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']}
                 />
-                <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="revenue" fill="#f97316" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -132,15 +135,15 @@ export default function AnalyticsPage() {
           </div>
           {trendLoading ? (
             <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="period" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: 'hsl(222,47%,9%)', border: '1px solid hsl(222,47%,15%)', borderRadius: '12px' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="period" tick={CHART_TICK} />
+                <YAxis tick={CHART_TICK} />
+                <Tooltip contentStyle={CHART_TOOLTIP} />
                 <Line type="monotone" dataKey="deals" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -162,50 +165,21 @@ export default function AnalyticsPage() {
           </div>
           {customerLoading ? (
             <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={byRegion} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <YAxis dataKey="_id" type="category" tick={{ fill: '#9ca3af', fontSize: 10 }} width={90} />
-                <Tooltip contentStyle={{ background: 'hsl(222,47%,9%)', border: '1px solid hsl(222,47%,15%)', borderRadius: '12px' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" tick={CHART_TICK} />
+                <YAxis dataKey="_id" type="category" tick={CHART_TICK} width={90} />
+                <Tooltip contentStyle={CHART_TOOLTIP} />
                 <Bar dataKey="count" fill="#06b6d4" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {/* Customers by Segment */}
-        <div className="glass rounded-2xl p-6 card-glow animate-fade-in flex flex-col justify-between min-h-[350px]">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-green-400" />
-              <h2 className="font-semibold text-foreground text-sm">Customers by Segment</h2>
-            </div>
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider font-mono ${
-              isSegmentEmpty ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-            }`}>
-              {isSegmentEmpty ? 'Demo Data' : 'Live DB'}
-            </span>
-          </div>
-          {customerLoading ? (
-            <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={bySegment}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="_id" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: 'hsl(222,47%,9%)', border: '1px solid hsl(222,47%,15%)', borderRadius: '12px' }} />
-                <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
       </div>
     </div>
   );

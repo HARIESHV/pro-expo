@@ -1,10 +1,17 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-// In development, use a relative base URL so all requests flow through the Vite
-// dev-server proxy (configured in vite.config.ts → server.proxy['/api']).
-// The proxy forwards /api/* → http://localhost:5005/api/*, handling CORS automatically.
-// In production, set VITE_API_URL to the full backend URL (e.g. https://api.example.com/api).
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+// In development, leave VITE_API_URL unset so all requests flow through the Vite
+// dev-server proxy (vite.config.ts → server.proxy['/api'] → http://localhost:5005).
+// In production, set VITE_API_URL to the full backend URL (e.g. https://api.yourdomain.com).
+// We normalize it to avoid double slashes, wrong ports, or missing /api prefix.
+function resolveBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+  if (!raw) return '/api';
+  const withoutTrailing = raw.replace(/\/+$/, '');
+  if (withoutTrailing.endsWith('/api')) return withoutTrailing;
+  return `${withoutTrailing}/api`;
+}
+const BASE_URL = resolveBaseUrl();
 
 export const axiosInstance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -45,6 +52,18 @@ axiosInstance.interceptors.response.use(
 
     if (import.meta.env.DEV && status) {
       console.debug(`[API] Response ${status} for ${originalRequest.method?.toUpperCase()} ${originalRequest.url}`);
+    }
+
+    // Public endpoints must not trigger auth redirect (e.g. /contact, /auth/*)
+    const isPublicEndpoint = typeof originalRequest.url === 'string' && (
+      originalRequest.url.includes('/contact') ||
+      originalRequest.url.includes('/auth/login') ||
+      originalRequest.url.includes('/auth/register') ||
+      originalRequest.url.includes('/auth/send-otp') ||
+      originalRequest.url.includes('/auth/verify-otp')
+    );
+    if (isPublicEndpoint) {
+      return Promise.reject(error);
     }
 
     if (status === 401 && !originalRequest._retry) {

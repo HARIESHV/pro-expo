@@ -7,6 +7,11 @@ import { ingestDocument } from '../ingestion/ingestionService';
 import { AppError } from '../middleware/errorHandler';
 import { ApiResponse } from '../types';
 import { logger } from '../config/logger';
+import { Conversation } from '../models/Conversation';
+import { Message } from '../models/Message';
+import { Query } from '../models/Query';
+import { KnowledgeEntity } from '../models/KnowledgeEntity';
+import { KnowledgeRelationship } from '../models/KnowledgeRelationship';
 
 export const documentController = {
   async uploadDocument(req: Request, res: Response): Promise<void> {
@@ -84,27 +89,52 @@ export const documentController = {
     const doc = await DocumentModel.findOne({
       _id: req.params.id,
       organizationId: req.user!.organizationId,
+      isDeleted: false,
     });
     if (!doc) throw new AppError('Document not found', 404);
 
-    await doc.updateOne({ isDeleted: true });
-    await DocumentChunk.deleteMany({ documentId: req.params.id });
-
     if (doc.filePath) {
-      fs.promises.unlink(doc.filePath).catch((err: NodeJS.ErrnoException) => {
-        if (err.code !== 'ENOENT') {
-          logger.warn(`[Documents] Failed to remove file for deleted document ${doc._id}: ${err.message}`);
+      try {
+        await fs.promises.unlink(doc.filePath);
+      } catch (err) {
+        const fileError = err as NodeJS.ErrnoException;
+        if (fileError.code !== 'ENOENT') {
+          logger.error(`[Documents] Failed to remove file for deleted document ${doc._id}: ${fileError.message}`);
+          throw new AppError('Unable to remove the stored document file', 500);
         }
+      }
+    }
+
+    if (doc.analysisConversationId) {
+      await Message.deleteMany({ conversationId: doc.analysisConversationId });
+      await Query.deleteMany({ conversationId: doc.analysisConversationId });
+      await Conversation.deleteOne({
+        _id: doc.analysisConversationId,
+        organizationId: req.user!.organizationId,
       });
     }
 
-    res.json({ success: true, message: 'Document deleted' } as ApiResponse);
+    await Promise.all([
+      DocumentChunk.deleteMany({ documentId: doc._id }),
+      KnowledgeEntity.updateMany(
+        { organizationId: req.user!.organizationId, sourceDocumentIds: doc._id },
+        { $pull: { sourceDocumentIds: doc._id } }
+      ),
+      KnowledgeRelationship.updateMany(
+        { organizationId: req.user!.organizationId, sourceDocumentIds: doc._id },
+        { $pull: { sourceDocumentIds: doc._id } }
+      ),
+    ]);
+
+    await doc.updateOne({ isDeleted: true });
+
+    res.json({ success: true, message: 'Document and associated analysis deleted' } as ApiResponse);
   },
 
   async reprocessDocument(req: Request, res: Response): Promise<void> {
     const doc = await DocumentModel.findOne({ _id: req.params.id, organizationId: req.user!.organizationId });
     if (!doc) throw new AppError('Document not found', 404);
-    ingestDocument(doc._id.toString()).catch(console.error);
+    ingestDocument(doc._id.toString()).catch((err) => logger.error(`[Documents] Reprocessing failed for ${doc._id}:`, err));
     res.json({ success: true, message: 'Reprocessing started' } as ApiResponse);
   },
 };

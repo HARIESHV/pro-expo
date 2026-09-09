@@ -1,7 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
 import { z } from 'zod';
 
-dotenv.config();
+// Explicitly load backend/.env regardless of cwd (fixes concurrently/root launches where cwd != backend)
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Fallback: also try process.cwd()/.env and parent .env for other hosting layouts (no override if already set)
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'backend/.env') });
 
 const envSchema = z.object({
   PORT: z.string().default('5000'),
@@ -31,9 +36,24 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.string().default('100'),
   VECTOR_SEARCH_INDEX_NAME: z.string().default('enterprise_vector_index'),
   VECTOR_DIMENSIONS: z.string().default('3072'),
-  ALLOWED_EMAIL_DOMAIN: z.string().default('company.com'),
   DB_RETRY_ATTEMPTS: z.string().default('6'),
   DB_RETRY_DELAY_MS: z.string().default('15000'),
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+  ADMIN_EMAIL: z.string().optional(),
+  CONTACT_RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
+  CONTACT_RATE_LIMIT_MAX: z.string().default('5'),
+  ADMIN_REPORT_UPLOAD_DIR: z.string().default('./uploads/reports'),
+  // Gmail SMTP — used ONLY for user sign-in OTP delivery (never admin auth, never Resend)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURE: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  // OTP security
+  OTP_EXPIRES_MINUTES: z.string().default('5'),
+  OTP_MAX_ATTEMPTS: z.string().default('5'),
 });
 
 const parsed = envSchema.safeParse(process.env);

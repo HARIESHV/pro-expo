@@ -3,7 +3,7 @@
 // ============================================================
 
 export type UserRole =
-  | 'ceo' | 'manager' | 'employee'
+  | 'super_admin' | 'admin' | 'ceo' | 'manager' | 'employee'
   | 'analyst' | 'hr' | 'finance' | 'sales';
 
 export type AgentType =
@@ -29,7 +29,7 @@ export interface User {
   departmentId?: string;
   status: 'active' | 'inactive' | 'suspended';
   lastLoginAt?: string;
-  preferences: { theme: 'light' | 'dark'; notifications: boolean; language: string };
+  preferences: { theme: 'light'; notifications: boolean; language: string };
   createdAt: string;
   permissions: string[];
 }
@@ -151,6 +151,10 @@ export interface Document {
   fileSize: number;
   documentType: string;
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  analysisError?: string;
+  analysisResponse?: string;
+  analyzedAt?: string;
   accessLevel: string;
   chunksCount: number;
   tags: string[];
@@ -275,7 +279,7 @@ export const USER_SEARCH_CATEGORY_ORDER: SearchResultType[] = [
 /** Returns true if the role array contains an admin-tier role. */
 export function isAdminRole(roles: string[] | undefined): boolean {
   if (!roles || roles.length === 0) return false;
-  return roles.some((r) => r.toLowerCase().trim() === 'super_admin');
+  return roles.some((r) => ['super_admin','admin'].includes(r.toLowerCase().trim()));
 }
 
 export interface PaginatedResponse<T> {

@@ -46,7 +46,7 @@ export default function QueryHistoryPage() {
         {/* Filters */}
         <div className="glass rounded-2xl p-4 card-glow flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-primary" />
+            <History className="w-4 h-4 text-orange-500" />
             <span className="text-sm font-semibold text-foreground">Filters</span>
           </div>
           <select
@@ -67,7 +67,7 @@ export default function QueryHistoryPage() {
           
           {isListLoading ? (
             <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : queries.length === 0 ? (
             <div className="text-center py-20 flex-grow flex flex-col justify-center">
@@ -82,7 +82,7 @@ export default function QueryHistoryPage() {
                   className={cn(
                     'p-3 rounded-xl border transition-all text-left flex items-start gap-2 relative group',
                     selectedQueryId === q._id
-                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      ? 'bg-orange-100 border-orange-300 text-orange-600'
                       : 'bg-secondary/40 border-border/50 hover:bg-secondary/70 text-muted-foreground'
                   )}
                 >
@@ -117,7 +117,7 @@ export default function QueryHistoryPage() {
         {selectedQueryId ? (
           isDetailLoading ? (
             <div className="flex items-center justify-center flex-grow py-40">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
             </div>
           ) : activeQuery ? (
             <div className="glass rounded-2xl p-8 card-glow space-y-6 flex-grow animate-fade-in">
@@ -130,7 +130,7 @@ export default function QueryHistoryPage() {
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     onClick={() => navigate(`/chat?q=${encodeURIComponent(activeQuery.originalQuery || '')}`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 rounded-lg font-semibold transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-orange-300 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-lg font-semibold transition-all"
                   >
                     <CornerDownRight className="w-3.5 h-3.5" /> Reopen in Chat
                   </button>
@@ -161,10 +161,10 @@ export default function QueryHistoryPage() {
               {activeQuery.status === 'completed' && activeQuery.result && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider block flex items-center gap-1">
                       <Cpu className="w-3.5 h-3.5" /> AI Response
                     </span>
-                    <div className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                    <div className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap p-4 bg-orange-50 border border-orange-200 rounded-xl">
                       {activeQuery.result.answer || activeQuery.result.summary || 'No answer payload returned.'}
                     </div>
                   </div>
@@ -175,7 +175,7 @@ export default function QueryHistoryPage() {
                       <ul className="space-y-1.5 text-xs text-foreground/80">
                         {activeQuery.result.recommendations.map((rec, idx) => (
                           <li key={idx} className="flex gap-2 bg-secondary/20 p-2.5 rounded-lg border border-border/30">
-                            <CornerDownRight className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                            <CornerDownRight className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
                             <span>{rec}</span>
                           </li>
                         ))}
@@ -188,7 +188,7 @@ export default function QueryHistoryPage() {
                       <span className="text-[10px] text-muted-foreground font-semibold">Orchestration Agents:</span>
                       <div className="flex gap-1.5">
                         {activeQuery.agentsUsed.map((agent) => (
-                          <span key={agent} className="text-[9px] font-bold px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary capitalize font-mono">
+                          <span key={agent} className="text-[9px] font-bold px-2 py-0.5 rounded bg-orange-100 border border-orange-200 text-orange-600 capitalize font-mono">
                             {agent}
                           </span>
                         ))}
@@ -210,8 +210,8 @@ export default function QueryHistoryPage() {
         ) : (
           /* Empty Active state */
           <div className="glass rounded-2xl p-10 card-glow flex flex-col items-center justify-center text-center flex-grow py-40 animate-fade-in">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-              <History className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center mb-6">
+              <History className="w-8 h-8 text-orange-500" />
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">No Query Log Selected</h2>
             <p className="text-muted-foreground max-w-md mb-6">

@@ -16,18 +16,15 @@ const DB_RETRY_DELAY_MS = parseInt(env.DB_RETRY_DELAY_MS, 10) || 15000;
 export async function connectDatabase(): Promise<void> {
   mongoose.set('strictQuery', false);
 
-  // Attach reconnect handling once so the driver auto-reconnects after a
-  // transient disconnect (e.g. Atlas free-tier pause/resume) without the
-  // process ever needing to restart.
-  mongoose.connection.on('error', (err) => {
-    logger.error('MongoDB connection error:', err);
-  });
-  mongoose.connection.on('disconnected', () => {
-    logger.warn('MongoDB disconnected. Attempting to reconnect...');
-  });
-  mongoose.connection.on('reconnected', () => {
-    logger.info('MongoDB reconnected');
-  });
+  // Swallow driver "error" events while the initial connection is still being
+  // retried, so we don't spam the log with "Could not connect to any servers..."
+  // on every attempt. The retry loop below reports progress concisely. Once a
+  // real connection is established, swap in actionable diagnostics. Mongoose
+  // auto-reconnects after a transient Atlas pause/resume without a restart.
+  const swallowBootstrapErrors = () => {
+    /* intentionally ignored during connect retries */
+  };
+  mongoose.connection.on('error', swallowBootstrapErrors);
 
   // Retry with backoff so a pausing/resuming Atlas cluster has time to elect a
   // primary before bootstrap gives up. Prevents the whole API from going down.
@@ -41,6 +38,21 @@ export async function connectDatabase(): Promise<void> {
         maxPoolSize: 10,
         retryWrites: true,
         retryReads: true,
+      });
+
+      mongoose.connection.removeListener('error', swallowBootstrapErrors);
+      mongoose.connection.on('error', (err) => {
+        if (mongoose.connection.readyState === 1) {
+          logger.error('MongoDB connection error:', err);
+        } else {
+          logger.warn(`MongoDB connection lost (reconnecting...): ${(err as Error).message?.split('\n')[0] || 'unknown error'}`);
+        }
+      });
+      mongoose.connection.on('disconnected', () => {
+        logger.warn('MongoDB disconnected. Attempting to reconnect...');
+      });
+      mongoose.connection.on('reconnected', () => {
+        logger.info('MongoDB reconnected');
       });
 
       logger.info(`✅ MongoDB connected: ${mongoose.connection.host}`);

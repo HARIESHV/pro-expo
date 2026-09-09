@@ -19,6 +19,7 @@ export interface KeywordSearchOptions {
   query: string;
   limit?: number;
   accessLevels?: AccessLevel[];
+  documentIds?: string[];
 }
 
 export const vectorSearchService = {
@@ -27,7 +28,7 @@ export const vectorSearchService = {
    * Falls back to cosine similarity scan for local MongoDB (no Atlas).
    */
   async vectorSearch(options: VectorSearchOptions): Promise<HybridRetrievalResult['chunks']> {
-    const { organizationId, queryEmbedding, limit = 20, minScore = 0.7, accessLevels, departments } = options;
+    const { organizationId, queryEmbedding, limit = 20, minScore = 0.7, accessLevels, departments, documentIds } = options;
 
     const filter: Record<string, unknown> = {
       organizationId: new mongoose.Types.ObjectId(organizationId),
@@ -38,7 +39,9 @@ export const vectorSearchService = {
     if (departments?.length) {
       filter['metadata.department'] = { $in: departments };
     }
-
+    if (documentIds?.length) {
+      filter.documentId = { $in: documentIds.map((id) => new mongoose.Types.ObjectId(id)) };
+    }
     try {
       // Try MongoDB Atlas $vectorSearch aggregation
       const pipeline: mongoose.PipelineStage[] = [
@@ -109,7 +112,7 @@ export const vectorSearchService = {
    * MongoDB full-text keyword search.
    */
   async keywordSearch(options: KeywordSearchOptions): Promise<HybridRetrievalResult['chunks']> {
-    const { organizationId, query, limit = 20, accessLevels } = options;
+    const { organizationId, query, limit = 20, accessLevels, documentIds } = options;
 
     const filter: Record<string, unknown> = {
       organizationId: new mongoose.Types.ObjectId(organizationId),
@@ -117,6 +120,9 @@ export const vectorSearchService = {
     };
     if (accessLevels?.length) {
       filter['metadata.accessLevel'] = { $in: accessLevels };
+    }
+    if (documentIds?.length) {
+      filter.documentId = { $in: documentIds.map((id) => new mongoose.Types.ObjectId(id)) };
     }
 
     const results = await DocumentChunk.find(filter, {

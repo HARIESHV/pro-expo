@@ -9,8 +9,6 @@ import {
   Send,
   ArrowRight,
   FileUp,
-  Sun,
-  Moon,
   CornerDownLeft,
   MessageSquarePlus,
 } from 'lucide-react';
@@ -18,7 +16,6 @@ import { searchApi } from '../api/search';
 import { SearchResult } from '../types';
 import { cn } from '../utils/cn';
 import { Spinner } from './ui/misc';
-import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../auth/useAuth';
 
 interface PaletteOption {
@@ -38,7 +35,6 @@ export function CommandPalette({
   onOpenChange: (v: boolean) => void;
 }) {
   const navigate = useNavigate();
-  const { toggleTheme, theme } = useTheme();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -120,19 +116,8 @@ export function CommandPalette({
           navigate('/documents');
         },
       },
-      {
-        id: 'action-theme',
-        label: 'Toggle appearance',
-        description: 'Toggle appearance',
-        icon: theme === 'dark' ? Sun : Moon,
-        group: 'Actions',
-        onSelect: () => {
-          toggleTheme();
-          close();
-        },
-      },
     ];
-  }, [navigate, onOpenChange, theme, toggleTheme]);
+  }, [navigate, onOpenChange]);
 
   const resultOptions: PaletteOption[] = useMemo(
     () =>

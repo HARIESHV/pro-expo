@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import { Menu, Search, Sun, Moon } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import { Sidebar } from '../components/Sidebar';
 import { CommandPalette } from '../components/CommandPalette';
@@ -9,7 +9,6 @@ import { IconButton } from '../components/ui/button';
 import { Kbd } from '../components/ui/misc';
 import { TooltipProvider } from '../components/ui/tooltip';
 import { AmbientBackground } from '../components/AmbientBackground';
-import { useTheme } from '../hooks/useTheme';
 import { cn } from '../utils/cn';
 
 const TITLES: Array<[RegExp, string]> = [
@@ -26,12 +25,14 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/query-history/, 'Query History'],
   [/^\/knowledge-graph/, 'Knowledge Graph'],
   [/^\/evaluate-graph/, 'Evaluate Graph'],
+  [/^\/knowledge-search/, 'Knowledge Search'],
   [/^\/business-intelligence/, 'Business Intelligence'],
+  [/^\/admin\/reports/, 'Report Review'],
+  [/^\/admin\/members/, 'Members'],
 ];
 
 export function AppLayout() {
   const { isAuthenticated, isLoading } = useAuth();
-  const { toggleTheme, theme } = useTheme();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
     () => localStorage.getItem('sidebar-collapsed') === '1'
@@ -67,8 +68,8 @@ export function AppLayout() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-brand">
-            <Search className="h-5 w-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500">
+            <Search className="h-5 w-5 text-white" />
           </div>
           <p className="text-xs text-muted-foreground">Loading Enterprise Intelligence Platform…</p>
         </div>
@@ -106,7 +107,7 @@ export function AppLayout() {
         {/* Main column */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top bar */}
-          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/70 bg-card/45 px-3 backdrop-blur-xl lg:px-4">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border/70 bg-background/70 px-3 backdrop-blur-xl lg:px-4">
             <IconButton
               className="lg:hidden"
               onClick={() => setMobileOpen(true)}
@@ -135,18 +136,6 @@ export function AppLayout() {
               <Search className="h-4 w-4" />
             </IconButton>
 
-            <IconButton
-              onClick={toggleTheme}
-              className="hidden lg:inline-flex"
-              aria-label="Toggle appearance"
-              title="Toggle appearance"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4 text-amber-400" />
-              ) : (
-                <Moon className="h-4 w-4 text-indigo-400" />
-              )}
-            </IconButton>
           </header>
 
           {/* Content */}

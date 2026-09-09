@@ -108,7 +108,7 @@ export default function RiskDashboardPage() {
   };
 
   const overviewCards = [
-    { label: 'Total Risks', count: total, icon: ShieldAlert, color: 'text-primary bg-primary/10 border-primary/20' },
+    { label: 'Total Risks', count: total, icon: ShieldAlert, color: 'text-orange-500 bg-orange-100 border-orange-200' },
     { label: 'Critical', count: summary.critical || 0, icon: ShieldAlert, color: 'text-red-400 bg-red-500/10 border-red-500/20' },
     { label: 'High', count: summary.high || 0, icon: AlertTriangle, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
     { label: 'Moderate', count: summary.medium || 0, icon: TrendingDown, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
@@ -147,7 +147,7 @@ export default function RiskDashboardPage() {
           <button
             onClick={() => recalcMutation.mutate()}
             disabled={recalcMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 border border-primary/40 hover:border-primary bg-primary/10 rounded-xl text-sm font-semibold transition-all text-primary"
+            className="flex items-center gap-2 px-4 py-2.5 border border-orange-400 hover:border-orange-500 bg-orange-100 rounded-xl text-sm font-semibold transition-all text-orange-600"
           >
             {recalcMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -229,7 +229,7 @@ export default function RiskDashboardPage() {
 
           {isListLoading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : risks.length === 0 ? (
             <div className="text-center text-muted-foreground py-12">
@@ -336,7 +336,7 @@ export default function RiskDashboardPage() {
                             <ul className="space-y-1">
                               {risk.recommendations.map((rec, idx) => (
                                 <li key={idx} className="flex gap-2 text-sm text-foreground/85">
-                                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                  <CheckCircle2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                                   <span>{rec}</span>
                                 </li>
                               ))}
@@ -355,9 +355,9 @@ export default function RiskDashboardPage() {
                                 <button
                                   key={s}
                                   onClick={() => navigate(m.route)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground hover:border-primary/40 transition-colors"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground hover:border-orange-400 transition-colors"
                                 >
-                                  <m.icon className="w-3.5 h-3.5 text-primary" />
+                                  <m.icon className="w-3.5 h-3.5 text-orange-500" />
                                   View {m.label.replace(/_/g, ' ').toLowerCase()}
                                   <ExternalLink className="w-3 h-3 text-muted-foreground" />
                                 </button>
@@ -400,14 +400,14 @@ export default function RiskDashboardPage() {
             <div className="space-y-2 mb-4">
               {distributionBySeverity.length === 0 && <p className="text-xs text-muted-foreground italic">No data</p>}
               {distributionBySeverity.map((d) => (
-                <Bar key={d.label} label={d.label} count={d.count} total={total} barClass={SEVERITY_BAR[d.label] || 'bg-primary'} />
+                <Bar key={d.label} label={d.label} count={d.count} total={total} barClass={SEVERITY_BAR[d.label] || 'bg-orange-500'} />
               ))}
             </div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">By Category</p>
             <div className="space-y-2 mb-4">
               {byCategory.length === 0 && <p className="text-xs text-muted-foreground italic">No data</p>}
               {byCategory.map((d) => (
-                <Bar key={d.category} label={d.category} count={d.count} total={risks.length} barClass="bg-primary" />
+                <Bar key={d.category} label={d.category} count={d.count} total={risks.length} barClass="bg-orange-500" />
               ))}
             </div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">By Source</p>
@@ -440,7 +440,7 @@ export default function RiskDashboardPage() {
           <div className="bg-card border border-border rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-pop" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-primary" />
+                <ShieldAlert className="w-5 h-5 text-orange-500" />
                 <h3 className="text-lg font-bold text-foreground">Risk Intelligence Report</h3>
               </div>
               <button onClick={() => setReportOpen(false)} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground">
@@ -450,7 +450,7 @@ export default function RiskDashboardPage() {
 
             {isReportFetching ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
               </div>
             ) : reportData?.data?.data?.report ? (
               <RiskReportBody report={reportData.data.data.report as any} navigate={navigate} />
@@ -511,7 +511,7 @@ function RiskReportBody({ report, navigate }: { report: any; navigate: (p: strin
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Risk Categories</p>
         <div className="flex flex-wrap gap-2">
           {report.riskCategories?.map((c: any) => (
-            <span key={c.category} className="text-[11px] px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
+            <span key={c.category} className="text-[11px] px-2 py-1 rounded-lg bg-orange-100 text-orange-600 border border-orange-200">
               {c.category} ({c.count})
             </span>
           ))}

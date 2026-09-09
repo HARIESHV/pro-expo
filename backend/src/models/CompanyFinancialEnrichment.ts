@@ -51,7 +51,7 @@ const segmentItemSchema = new Schema<SegmentItem>(
 
 const companyFinancialEnrichmentSchema = new Schema<ICompanyFinancialEnrichment>(
   {
-    companyKey: { type: String, required: true, index: true },
+    companyKey: { type: String, required: true },
     displayName: { type: String, default: '' },
     segments: {
       regions: { type: [segmentItemSchema], default: [] },

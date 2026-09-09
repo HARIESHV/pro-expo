@@ -2,96 +2,103 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import {
-  Zap,
-  MessageSquare,
-  Search,
-  FileText,
-  Brain,
-  ShieldCheck,
-  ArrowRight,
-  Check,
-  Sparkles,
-  Globe,
-  Database,
-  Network,
-  LineChart,
-  Star,
-  Quote,
-  ChevronDown,
-  Bot,
-  Command,
-  Sun,
-  Moon,
+  ArrowRight, Check, ChevronDown, Command, Database, MessageSquare,
+  Network, Play, Quote, Search, ShieldCheck, Sparkles, Star,
+  BarChart3, Gauge, Brain, LayoutDashboard, Activity, Lock, FileText, Globe, Zap,
+  Menu, X,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Kbd } from '../components/ui/misc';
 import { Reveal, CountUp } from '../components/motion';
-import { AmbientBackground } from '../components/AmbientBackground';
-import { useTheme } from '../hooks/useTheme';
 import { cn } from '../utils/cn';
 
 /* ------------------------------------------------------------------ */
 /* Content                                                              */
 /* ------------------------------------------------------------------ */
 
-const PRODUCTS = [
+const NAV_LINKS = [
+  ['#home', 'Home', false],
+  ['#features', 'Features', false],
+  ['#about', 'About', false],
+  ['/contact', 'Contact', true],
+] as const;
+
+const FEATURES = [
   {
-    icon: MessageSquare,
-    title: 'AI Chat',
-    desc: 'Ask questions in plain language. Multiple agents collaborate and return evidence-backed answers with sources.',
-    points: ['Multi-agent orchestration', 'Markdown, tables & code', 'Citations & confidence scores'],
+    icon: Database,
+    title: 'Data Integration',
+    desc: 'Connect documents, spreadsheets, databases, and knowledge graphs in minutes — everything lands in one queryable workspace.',
+    to: '/documents',
   },
   {
-    icon: Search,
-    title: 'Universal Search',
-    desc: 'One search across documents, databases, the knowledge graph, and the public web — with grouped, filterable results.',
-    points: ['Enterprise & public web modes', 'Live evidence & relevance scores', 'Open anywhere with ⌘K'],
+    icon: BarChart3,
+    title: 'Advanced Analytics',
+    desc: 'Revenue, sales, risk, and customer insights backed by real-time calculations and period-over-period comparisons.',
+    to: '/analytics',
   },
   {
-    icon: FileText,
-    title: 'Documents',
-    desc: 'Upload PDFs, spreadsheets, CSV, and text. Content is automatically chunked and becomes part of your knowledge base.',
-    points: ['Drag-and-drop uploads', 'Automatic chunking & tagging', 'Processing status tracking'],
+    icon: Brain,
+    title: 'AI Insights',
+    desc: 'Multi-agent AI answers plain-language questions with evidence, sources, and confidence scores you can verify.',
+    to: '/chat',
+  },
+  {
+    icon: LayoutDashboard,
+    title: 'Custom Dashboards',
+    desc: 'Executive, risk, and business-intelligence dashboards shaped around the metrics you care about most.',
+    to: '/dashboard',
+  },
+  {
+    icon: Activity,
+    title: 'Real-Time Monitoring',
+    desc: 'Live queries, indexing progress, and risk signals keep your team moving on the freshest possible data.',
+    to: '/reports',
+  },
+  {
+    icon: Lock,
+    title: 'Enterprise Security',
+    desc: 'Role-based access control, audit logging, and isolated infrastructure keep your data yours at all times.',
+    to: '#about',
   },
 ];
 
 const STEPS = [
   {
-    icon: Bot,
-    title: 'Ingest & index',
-    desc: 'Upload documents, connect data sources, and map relationships into a secure knowledge graph.',
-  },
-  {
     icon: Sparkles,
-    title: 'Orchestrate agents',
-    desc: 'Your question is routed to the right specialists — RAG, finance, sales, risk, web — working in parallel.',
+    title: 'Sign Up',
+    desc: 'Create your free account and get instant access to the Enterprise Intelligence workspace.',
+    to: '/register',
   },
   {
-    icon: ShieldCheck,
-    title: 'Synthesize with evidence',
-    desc: 'Agents merge findings into one answer with sources, confidence scores, and recommended next actions.',
+    icon: Database,
+    title: 'Connect Data',
+    desc: 'Upload documents or connect data sources — chunked, embedded, and indexed automatically.',
+    to: '/documents',
   },
-];
-
-const HIGHLIGHTS = [
-  'Answers with citations you can verify, every time',
-  'Global ⌘K palette to open anything in two keystrokes',
-  'Role-based permissions and full audit logging',
-  'Works on any screen — phone, tablet, or desktop',
+  {
+    icon: BarChart3,
+    title: 'Analyze & Explore',
+    desc: 'Ask questions, search everything, and explore dashboards backed by real, evidence-based answers.',
+    to: '/analytics',
+  },
+  {
+    icon: Zap,
+    title: 'Make Better Decisions',
+    desc: 'Turn insight into confident action with reports and business intelligence you can trust.',
+    to: '/business-intelligence',
+  },
 ];
 
 const TESTIMONIALS = [
   {
-    quote:
-      'Enterprise Intelligence Platform replaced three tools for our team. Instead of digging through spreadsheets, we ask a question and get a sourced answer in seconds.',
+    quote: 'Enterprise Intelligence replaced three tools for our team. Instead of digging through spreadsheets, we ask a question and get a sourced answer in seconds.',
     name: 'Priya Raghavan',
     role: 'VP Operations, Meridian Logistics',
     initials: 'PR',
   },
   {
-    quote:
-      'Answers come back with real citations, so I trust what I read. It cut the time our analysts spend on research by nearly half.',
+    quote: 'Answers come back with real citations, so I trust what I read. It cut the time our analysts spend on research by nearly half.',
     name: 'Sofia Marino',
     role: 'Director of Finance, Atlas Energy',
     initials: 'SM',
@@ -108,10 +115,6 @@ const FAQS = [
     a: 'PDF, spreadsheets, CSV, and plain text. Uploads are chunked, embedded, and indexed automatically, then appear in search and chat within seconds.',
   },
   {
-    q: 'How does universal search decide what to show?',
-    a: 'It queries your enterprise data, the knowledge graph, and the public web simultaneously, then groups results by type — documents, entities, meetings, web pages — with relevance and evidence indicators.',
-  },
-  {
     q: 'Is my data secure?',
     a: 'Role-based access control, audit logging, and isolated infrastructure keep your data yours. Every answer is backed by evidence you can verify, and admins control exactly who can see what.',
   },
@@ -121,63 +124,39 @@ const FAQS = [
   },
   {
     q: 'Can I try it before committing?',
-    a: 'Yes. Register for a free account and explore the full workspace — chat, search, and documents — before you decide.',
+    a: 'Yes. Register for a free account and explore the full workspace — chat, search, and dashboards — before you decide.',
   },
 ];
 
-const BARS = [34, 42, 38, 55, 48, 66, 62, 74, 70, 82, 78, 90];
 const COMPANIES = ['Meridian Logistics', 'Northwind Retail', 'Atlas Energy', 'Cobalt Health', 'Pioneer Bank'];
 
 /* ------------------------------------------------------------------ */
 /* Small pieces                                                        */
 /* ------------------------------------------------------------------ */
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-foreground">
-      {children}
-    </span>
-  );
-}
-
-function SectionHeading({ kicker, title, sub }: {
-  kicker: string; title: React.ReactNode; sub?: React.ReactNode
-}) {
-  return (
-    <Reveal className="mx-auto mb-12 flex max-w-2xl flex-col items-center text-center">
-      <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-        <span className="h-1 w-1 rounded-full bg-gradient-to-r from-primary to-accent" />
-        {kicker}
-        <span className="h-1 w-1 rounded-full bg-gradient-to-r from-primary to-accent" />
-      </p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">{title}</h2>
-      {sub && <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground">{sub}</p>}
-    </Reveal>
-  );
-}
-
-function GradientIcon({ icon: Icon, className }: { icon: React.ElementType; className?: string }) {
-  return (
-    <div
-      className={cn(
-        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl gradient-brand-soft text-primary shadow-glow-sm',
-        className
-      )}
-    >
-      <Icon className="h-5 w-5" />
-    </div>
-  );
-}
-
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
-    <details className="group glass rounded-2xl px-5 py-4 transition-all duration-200 open:shadow-card">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14.5px] font-medium text-foreground marker:hidden">
+    <details className="group rounded-2xl border border-border bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-200 open:shadow-[0_8px_24px_-12px_rgba(16,24,40,0.14)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14.5px] font-semibold text-[#0b2545] marker:hidden">
         {q}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
-      <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">{a}</p>
+      <p className="mt-3 text-[13.5px] leading-relaxed text-[#52637a]">{a}</p>
     </details>
+  );
+}
+
+function SectionHeading({ kicker, title, sub }: { kicker: string; title: React.ReactNode; sub?: React.ReactNode }) {
+  return (
+    <div className="mx-auto mb-12 max-w-2xl text-center">
+      <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#ff6b00]">
+        <span className="h-1 w-1 rounded-full bg-[#ff6b00]" />
+        {kicker}
+        <span className="h-1 w-1 rounded-full bg-[#ff6b00]" />
+      </p>
+      <h2 className="mt-3 text-3xl font-bold tracking-[-0.02em] text-[#0b2545] sm:text-4xl">{title}</h2>
+      {sub && <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#52637a]">{sub}</p>}
+    </div>
   );
 }
 
@@ -188,8 +167,8 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -202,450 +181,313 @@ export default function LandingPage() {
     : { label: 'Get started free', to: '/register' };
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden font-sans text-foreground">
-      <AmbientBackground tone="hero" />
+    <div className="landing-theme relative min-h-screen overflow-x-hidden bg-background font-sans text-foreground">
+      {/* Decorative gradient washes */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-gradient-to-b from-blue-50/70 via-white to-white" />
+      <div className="pointer-events-none absolute -left-40 top-24 -z-10 h-96 w-96 rounded-full bg-orange-100/50 blur-3xl" />
+      <div className="pointer-events-none absolute -right-32 top-56 -z-10 h-96 w-96 rounded-full bg-blue-100/60 blur-3xl" />
 
       {/* ============ Floating nav ============ */}
       <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
         <div
           className={cn(
-            'glass-strong mx-auto flex h-12 max-w-5xl items-center gap-3 rounded-full px-3 pl-4 transition-shadow duration-300 sm:px-4',
-            scrolled ? 'shadow-pop' : 'shadow-card'
+            'mx-auto flex h-12 max-w-6xl items-center gap-3 rounded-full border border-[#e6edf3] bg-white/85 px-3 pl-4 backdrop-blur-xl transition-shadow duration-300 sm:px-4',
+            scrolled ? 'shadow-[0_16px_40px_-16px_rgba(11,37,69,0.22)]' : 'shadow-[0_1px_2px_rgba(16,24,40,0.04)]'
           )}
         >
-          <button onClick={() => navigate('/')} className="flex items-center gap-2.5" aria-label="Enterprise Intelligence Platform home">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg gradient-brand">
-              <Network className="h-3.5 w-3.5" />
+          <button onClick={() => { window.scrollTo({ top: 0 }); navigate('/'); }} className="flex items-center gap-2.5" aria-label="Enterprise Intelligence Platform home">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#ff6b00] shadow-[0_8px_16px_-8px_rgba(255,107,0,0.7)]">
+              <Network className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="hidden text-[15px] font-semibold tracking-tight sm:block">Enterprise Intelligence Platform</span>
-            <span className="text-[15px] font-semibold tracking-tight sm:hidden">EIP</span>
+            <span className="hidden text-[15px] font-bold tracking-tight text-[#0b2545] sm:block">Enterprise Intelligence</span>
+            <span className="text-[15px] font-bold tracking-tight text-[#0b2545] sm:hidden">EIP</span>
           </button>
 
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Product">
-            {[
-              ['Product', '#product'],
-              ['How it works', '#how-it-works'],
-              ['Customers', '#testimonials'],
-              ['FAQ', '#faq'],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                className="rounded-full px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                {label}
-              </a>
-            ))}
+          <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Landing page">
+            {NAV_LINKS.map(([href, label, isRoute]) =>
+              isRoute ? (
+                <Link
+                  key={href}
+                  to={href}
+                  className="rounded-full px-3 py-1.5 text-[13px] font-medium text-[#52637a] transition-colors hover:bg-orange-50 hover:text-[#0b2545]"
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={href}
+                  href={href}
+                  className="rounded-full px-3 py-1.5 text-[13px] font-medium text-[#52637a] transition-colors hover:bg-orange-50 hover:text-[#0b2545]"
+                >
+                  {label}
+                </a>
+              )
+            )}
           </nav>
 
           <div className="flex-1" />
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="hidden rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground sm:flex"
-            aria-label="Toggle appearance"
-            title="Toggle appearance"
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4 text-indigo-400" />
-            )}
-          </Button>
-
           {isAuthenticated ? (
-            <Button size="sm" onClick={() => navigate('/dashboard')}>
+            <Button size="sm" onClick={() => navigate('/dashboard')} className="hidden sm:inline-flex">
               {primary.label} <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           ) : (
             <>
               <Button variant="ghost" size="sm" onClick={() => navigate('/login')} className="hidden sm:inline-flex">
-                Sign in
+                Login
               </Button>
-              <Button size="sm" onClick={() => navigate('/register')}>
-                {primary.label} <ArrowRight className="h-3.5 w-3.5" />
+              <Button size="sm" onClick={() => navigate('/register')} className="hidden sm:inline-flex">
+                Sign Up <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </>
           )}
+
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#e6edf3] bg-white text-[#0b2545] shadow-sm lg:hidden"
+          >
+            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
         </div>
+        {mobileOpen && (
+          <div className="mx-auto mt-2 max-w-6xl rounded-2xl border border-[#e6edf3] bg-white p-2 shadow-[0_16px_40px_-16px_rgba(11,37,69,0.22)] lg:hidden">
+            <nav className="flex flex-col gap-1 p-1" aria-label="Mobile">
+              {NAV_LINKS.map(([href, label, isRoute]) =>
+                isRoute ? (
+                  <Link
+                    key={href}
+                    to={href}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-[14px] font-medium text-[#0b2545] hover:bg-orange-50"
+                  >
+                    {label}
+                  </Link>
+                ) : (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-[14px] font-medium text-[#0b2545] hover:bg-orange-50"
+                  >
+                    {label}
+                  </a>
+                )
+              )}
+              <div className="my-1 border-t border-[#eef2f6]" />
+              {isAuthenticated ? (
+                <Button onClick={() => navigate('/dashboard')} className="w-full justify-center">
+                  Open workspace <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => navigate('/login')} className="flex-1">
+                    Login
+                  </Button>
+                  <Button onClick={() => navigate('/register')} className="flex-1">
+                    Sign Up <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* ============ Hero ============ */}
-      <section className="relative mx-auto flex w-full max-w-6xl flex-col items-center px-4 pb-16 pt-32 text-center sm:px-6 sm:pt-40">
-        {/* Local hero glow */}
-        <div className="pointer-events-none absolute left-1/2 top-8 h-[540px] w-[820px] -translate-x-1/2">
-          <div
-            className="glow-pulse h-full w-full rounded-full"
-            style={{
-              background:
-                'radial-gradient(closest-side, hsl(var(--glow-a) / 0.28), hsl(var(--glow-b) / 0.12) 55%, transparent)',
-            }}
-          />
-        </div>
-
-        <Reveal>
-          <Eyebrow>
+      <section id="home" className="relative mx-auto flex w-full max-w-7xl flex-col items-center px-4 pb-20 pt-32 sm:px-6 lg:flex-row lg:items-center lg:gap-16 lg:pt-40">
+        {/* Left: copy */}
+        <div className="w-full max-w-2xl text-center lg:flex-1 lg:text-left">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200/70 bg-orange-50/70 px-3 py-1 text-xs font-medium text-[#c2410c]">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute h-full w-full animate-ping rounded-full bg-success opacity-70" />
-              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              <span className="absolute h-full w-full animate-ping rounded-full bg-[#ff6b00] opacity-60" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#ff6b00]" />
             </span>
-            The AI workspace for your business
-          </Eyebrow>
-        </Reveal>
+            The enterprise intelligence platform
+          </div>
 
-        <Reveal delay={80}>
-          <h1 className="mt-7 max-w-3xl text-[42px] font-semibold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-6xl">
-            Every answer your team needs,
-            <br className="hidden sm:block" />{' '}
-            <span className="gradient-text">backed by evidence</span>
+          <h1 className="mt-6 text-4xl font-bold leading-[1.06] tracking-[-0.03em] text-[#0b2545] sm:text-5xl lg:text-[54px]">
+            Turn Your Data into{' '}
+            <span className="bg-gradient-to-r from-[#ff6b00] to-[#ff9d45] bg-clip-text text-transparent">Real Insights</span>
           </h1>
-        </Reveal>
 
-        <Reveal delay={160}>
-          <p className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-muted-foreground sm:text-base">
-            Ask in plain language and search everything your company knows. Enterprise Intelligence Platform connects documents, data, and your knowledge graph to a team of AI agents.
+          <p className="mx-auto mt-5 max-w-lg text-[16px] leading-relaxed text-[#52637a] lg:mx-0">
+            Powerful analytics and real-time insights to help you grow, optimize, and lead. Ask questions,
+            explore dashboards, and make data-driven decisions with confidence — everything backed by evidence.
           </p>
-        </Reveal>
 
-        <Reveal delay={240}>
-          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
-            <Button size="lg" onClick={() => navigate(primary.to)}>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
+            <Button size="lg" onClick={() => navigate(primary.to)} className="px-6">
               {primary.label} <ArrowRight className="h-4 w-4" />
             </Button>
-            {!isAuthenticated && (
-              <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
-                Try the live demo
-              </Button>
-            )}
-            {isAuthenticated && (
-              <Button size="lg" variant="outline" onClick={() => navigate('/search-home')}>
-                Run a search
-              </Button>
-            )}
+            <Button size="lg" variant="outline" onClick={() => navigate('#demo')} className="px-6">
+              <Play className="h-4 w-4 text-[#ff6b00]" /> Watch Demo
+            </Button>
           </div>
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-            Press <Kbd>⌘K</Kbd> anywhere inside the workspace for instant search
+
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[#718096] lg:justify-start">
+            No credit card required <span className="h-1 w-1 rounded-full bg-[#d3dce6]" />
+            <Kbd>⌘K</Kbd> anywhere inside the workspace for instant search
           </p>
-        </Reveal>
+        </div>
 
-        {/* Product mockup */}
-        <Reveal delay={320} className="relative mt-16 w-full max-w-5xl">
-          <div className="border-gradient relative rounded-3xl shadow-pop">
-            <div className="rounded-[calc(1.5rem-1px)] bg-card/70">
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 rounded-t-[calc(1.5rem-1px)] border-b border-border bg-card/40 px-4 py-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--destructive)/0.7)]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--warning)/0.8)]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[hsl(var(--success)/0.8)]" />
-                <div className="mx-auto flex h-6 w-64 max-w-full items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[11px] text-muted-foreground">
-                  <ShieldCheck className="h-3 w-3 text-success" /> app.proexpo.io/dashboard
-                </div>
-                <div className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:flex">
-                  <Search className="h-3 w-3" /> Search <Kbd>⌘K</Kbd>
-                </div>
-              </div>
-
-              {/* Mock dashboard */}
-              <div className="grid grid-cols-1 text-left md:grid-cols-[150px_1fr]">
-                <div className="hidden flex-col gap-4 border-r border-border bg-card/35 p-4 md:flex">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md gradient-brand">
-                      <Network className="h-3 w-3" />
-                    </div>
-                    <span className="text-xs font-semibold">EIP</span>
-                  </div>
-                  {[
-                    ['Home', true],
-                    ['AI Chat', false],
-                    ['Search', false],
-                    ['Documents', false],
-                    ['Risks', false],
-                    ['Agents', false],
-                  ].map(([label, active]) => (
-                    <div
-                      key={label as string}
-                      className={cn(
-                        'flex h-7 items-center gap-2 rounded-md pl-2 pr-3 text-[11px]',
-                        active
-                          ? 'sidebar-item active'
-                          : 'text-muted-foreground'
-                      )}
-                    >
-                      <span className={cn('h-1.5 w-1.5 rounded-full', active ? 'bg-primary' : 'bg-border')} />
-                      {label}
-                    </div>
-                  ))}
-                  <div className="mt-auto flex items-center gap-2 rounded-xl glass p-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full gradient-brand-soft text-[10px] font-semibold text-primary">
-                      AR
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[10px] font-medium text-foreground">Alex Rivera</p>
-                      <p className="text-[9px] text-muted-foreground">Admin</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 sm:p-6">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Thursday, August 29
-                      </p>
-                      <p className="mt-0.5 text-sm font-semibold text-foreground">Good day, Alex</p>
-                    </div>
-                    <div className="glass flex h-8 items-center gap-2 rounded-lg px-2.5 text-[11px] text-muted-foreground">
-                      <MessageSquare className="h-3.5 w-3.5 text-primary" /> Ask the workspace
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                    {(
-                      [
-                        ['Q3 revenue', '$2.4M', '+12.4%', 'text-success'],
-                        ['Active customers', '128', '+3.2%', 'text-success'],
-                        ['At-risk accounts', '9', '-0.8%', 'text-warning'],
-                        ['AI queries', '4,812', '+28%', 'text-success'],
-                      ] as const
-                    ).map(([label, val, change, tone]) => (
-                      <div key={label} className="glass rounded-xl p-3">
-                        <p className="text-[10px] text-muted-foreground">{label}</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular text-foreground">{val}</p>
-                        <p className={cn('text-[10px] font-medium tabular', tone)}>{change}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-[1.2fr_1fr]">
-                    <div className="glass rounded-xl p-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[11px] font-medium text-foreground">Revenue trend</p>
-                        <p className="flex items-center gap-1 text-[10px] font-medium text-success">
-                          <LineChart className="h-3 w-3" /> +18%
-                        </p>
-                      </div>
-                      <div className="mt-3 flex h-24 items-end gap-1.5">
-                        {BARS.map((h, i) => (
-                          <div
-                            key={i}
-                            className="flex-1 rounded-t-[3px] bg-primary/15"
-                            style={{ height: `${h}%` }}
-                          >
-                            <div
-                              className={
-                                i === BARS.length - 1
-                                  ? 'h-full w-full rounded-t-[3px] gradient-brand'
-                                  : 'h-full w-full rounded-t-[3px] bg-primary/40'
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-2 flex justify-between text-[9px] text-muted-foreground">
-                        <span>Q2 '24</span><span>Q4 '24</span><span>Q2 '25</span><span>Q2 '26</span>
-                      </div>
-                    </div>
-
-                    <div className="glass rounded-xl p-3">
-                      <p className="text-[11px] font-medium text-foreground">AI chat</p>
-                      <div className="mt-3 space-y-2">
-                        <div className="ml-auto w-fit max-w-[85%] rounded-lg rounded-br-sm gradient-brand px-2.5 py-1.5 text-[10.5px]">
-                          Which accounts are most at risk?
-                        </div>
-                        <div>
-                          <div className="w-fit max-w-[92%] rounded-lg rounded-bl-sm border border-border bg-card px-2.5 py-1.5 text-[10.5px] leading-relaxed text-secondary-foreground">
-                            3 accounts have churn risk &gt; 70%: Northwind, Meridian, and Atlas…
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <span className="inline-flex items-center gap-1 rounded-full border border-success/25 bg-success/10 px-2 py-0.5 text-[9px] font-medium text-success">
-                              Confidence 84%
-                            </span>
-                            <span className="glass inline-flex items-center rounded-full px-2 py-0.5 text-[9px] text-muted-foreground">
-                              6 sources
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Right: illustration */}
+        <div id="demo" className="mt-16 w-full scroll-mt-28 lg:mt-0 lg:flex-1">
+          <div className="relative mx-auto w-full max-w-[560px]">
+            <div className="absolute -inset-8 rounded-[40px] bg-gradient-to-tr from-orange-100/70 via-transparent to-blue-100/70 blur-2xl" />
+            <img
+              src="/laptop.png"
+              alt="Enterprise Intelligence Platform — laptop, cloud, analytics, and database illustration"
+              className="relative w-full rounded-2xl shadow-[0_24px_60px_-24px_rgba(11,37,69,0.28)]"
+            />
           </div>
+        </div>
+      </section>
 
-          {/* Floating cards */}
-          <div className="animate-float-y absolute -right-4 -top-8 hidden w-56 rounded-2xl glass-strong p-3.5 shadow-pop lg:block" style={{ animationDelay: '0.6s' }}>
-            <div className="flex items-center gap-1.5">
-              <Brain className="h-3.5 w-3.5 text-primary" />
-              <p className="text-[11px] font-semibold text-foreground">Intelligence</p>
-              <span className="ml-auto text-[10px] font-medium text-success">live</span>
-            </div>
-            <div className="mt-2.5 space-y-1.5">
-              {['Risk signal: churn cluster', 'New doc indexed: strategy.pdf', '2 agents completed'].map((item, i) => (
-                <p key={item} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="h-1 w-1 shrink-0 rounded-full gradient-brand" style={{ opacity: 1 - i * 0.25 }} />
-                  {item}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          <div className="animate-float-y absolute -left-6 bottom-10 hidden w-44 rounded-2xl glass-strong p-3.5 shadow-pop lg:block" style={{ animationDelay: '1.4s' }}>
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Query routed
-            </p>
-            <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>RAG agent</span><span className="font-medium text-success">done</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>Risk agent</span><span className="font-medium text-success">done</span>
-            </div>
-            <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>Web agent</span><span className="font-medium text-primary">working…</span>
-            </div>
-          </div>
-        </Reveal>
-
-        {/* Trust strip */}
-        <Reveal delay={100} className="mt-16 w-full">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      {/* ============ Trust strip + stats ============ */}
+      <section className="border-y border-[#eef2f6] bg-white/60">
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a99ac]">
             Trusted by teams that move on insight
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             {COMPANIES.map((company) => (
               <span
                 key={company}
-                className="glass rounded-full px-4 py-1.5 text-[12.5px] font-semibold tracking-tight text-secondary-foreground"
+                className="rounded-full border border-[#e6edf3] bg-white px-4 py-1.5 text-[12.5px] font-semibold tracking-tight text-[#40536e]"
               >
                 {company}
               </span>
             ))}
           </div>
-        </Reveal>
-
-        {/* Stats band */}
-        <div className="mt-12 grid w-full max-w-4xl grid-cols-2 gap-y-8 rounded-3xl glass-strong px-6 py-9 shadow-card sm:grid-cols-4 sm:py-10">
-          {[
-            { value: 3, suffix: '', label: 'product pillars' },
-            { value: 11, suffix: '', label: 'specialist agents' },
-            { value: 3, suffix: '', label: 'search modes' },
-            { value: 2, suffix: 's', prefix: '<', label: 'to first answers' },
-          ].map((stat, i) => (
-            <div key={stat.label} className={cn('text-center', i > 0 && 'sm:border-l sm:border-border/60')}>
-              <p className="font-mono text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                <span className="gradient-text">
-                  {stat.prefix}
-                  <CountUp value={stat.value} format={(n) => Math.round(n).toString()} />
-                  {stat.suffix}
-                </span>
-              </p>
-              <p className="mt-1.5 text-[11.5px] text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ============ Product: bento ============ */}
-      <section id="product" className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-          <SectionHeading
-            kicker="The platform"
-            title={<>Three superpowers, <span className="gradient-text">one workspace</span></>}
-            sub="Everything a modern team needs to turn internal knowledge into confident action."
-          />
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-6">
-            {/* AI Chat — large */}
-            <Reveal className="md:col-span-4" delay={40}>
-              <div className="group glass relative h-full overflow-hidden rounded-3xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop">
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl transition-opacity duration-300 group-hover:bg-primary/20" />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <GradientIcon icon={MessageSquare} />
-                    <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">AI Chat</h3>
-                    <p className="mt-1.5 max-w-md text-[13.5px] leading-relaxed text-muted-foreground">
-                      Ask anything in plain language. Specialist agents collaborate in parallel and return one evidence-backed answer with sources you can verify.
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">/01</Badge>
-                </div>
-                <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {['Multi-agent orchestration', 'Markdown, tables & code', 'Citations & confidence', 'Streaming answers'].map((pt) => (
-                    <p key={pt} className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-[12.5px] text-secondary-foreground">
-                      <Check className="h-3.5 w-3.5 shrink-0 text-success" /> {pt}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Documents — small */}
-            <Reveal className="md:col-span-2" delay={120}>
-              <div className="group glass relative h-full overflow-hidden rounded-3xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop md:space-y-0">
-                <GradientIcon icon={FileText} />
-                <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">Documents</h3>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-                  Upload PDFs, spreadsheets, CSV, and text — automatically chunked and indexed.
-                </p>
-                <div className="mt-5 flex items-center justify-between rounded-xl glass px-3 py-2.5">
-                  <span className="text-[12px] text-muted-foreground">strategy.pdf</span>
-                  <span className="flex items-center gap-1 text-[11px] font-medium text-success">
-                    <Check className="h-3 w-3" /> indexed
+          <div className="mt-8 grid grid-cols-2 gap-y-8 py-2 sm:grid-cols-4">
+            {[
+              { value: 3, suffix: '', label: 'product pillars' },
+              { value: 11, suffix: '', label: 'specialist agents' },
+              { value: 3, suffix: '', label: 'search modes' },
+              { value: 2, suffix: 's', prefix: '<', label: 'to first answers' },
+            ].map((stat, i) => (
+              <div key={stat.label} className={cn('text-center', i > 0 && 'sm:border-l sm:border-[#eef2f6]')}>
+                <p className="font-mono text-3xl font-bold tracking-tight text-[#0b2545] sm:text-4xl">
+                  <span className="bg-gradient-to-r from-[#ff6b00] to-[#ffb347] bg-clip-text text-transparent">
+                    {stat.prefix}
+                    <CountUp value={stat.value} format={(n) => Math.round(n).toString()} />
+                    {stat.suffix}
                   </span>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Search — small */}
-            <Reveal className="md:col-span-2" delay={40}>
-              <div className="group glass relative h-full overflow-hidden rounded-3xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop">
-                <GradientIcon icon={Search} />
-                <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">Universal Search</h3>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-                  One search across docs, data, the knowledge graph, and the web.
                 </p>
-                <div className="mt-5 flex items-center gap-2 rounded-xl border border-border bg-card/40 px-3 py-2.5">
-                  <Search className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-[12px] text-muted-foreground">impact summary for acme…</span>
-                </div>
+                <p className="mt-1.5 text-[11.5px] text-[#6b7d94]">{stat.label}</p>
               </div>
-            </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ============ Highlights ============ */}
-      <section className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      {/* ============ Features ============ */}
+      <section id="features" className="scroll-mt-20">
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+          <SectionHeading
+            kicker="Features"
+            title={<>Everything you need to <span className="bg-gradient-to-r from-[#ff6b00] to-[#ff9d45] bg-clip-text text-transparent">lead with data</span></>}
+            sub="Six pillars that turn raw enterprise data into decisions your whole team can trust."
+          />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature, i) => (
+              <Reveal key={feature.title} delay={i * 60}>
+                <div className="group flex h-full flex-col rounded-2xl border border-[#e6edf3] bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-orange-200/80 hover:shadow-[0_20px_40px_-20px_rgba(11,37,69,0.24)]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-[0_10px_20px_-10px_rgba(255,107,0,0.7)] transition-transform duration-300 group-hover:scale-105">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-[16px] font-bold tracking-tight text-[#0b2545]">{feature.title}</h3>
+                  <p className="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-[#52637a]">{feature.desc}</p>
+                  <a
+                    href={feature.to}
+                    onClick={(e) => {
+                      if (feature.to.startsWith('#')) {
+                        e.preventDefault();
+                        document.querySelector(feature.to)?.scrollIntoView({ behavior: 'smooth' });
+                        return;
+                      }
+                      navigate(feature.to);
+                    }}
+                    className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-[#ff6b00] hover:text-[#d95700]"
+                  >
+                    Explore {feature.title.split(' ')[0].toLowerCase()} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </a>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ How it works ============ */}
+      <section id="how-it-works" className="scroll-mt-20 bg-gradient-to-b from-blue-50/50 to-white">
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+          <SectionHeading
+            kicker="How it works"
+            title={<>From sign up to <span className="bg-gradient-to-r from-[#ff6b00] to-[#ff9d45] bg-clip-text text-transparent">better decisions</span></>}
+            sub="Four simple steps to start turning your data into real insights."
+          />
+
+          <div className="relative grid grid-cols-1 gap-6 md:grid-cols-4 md:gap-4">
+            <div className="pointer-events-none absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent md:block" />
+            {STEPS.map((step, i) => (
+              <Reveal key={step.title} delay={i * 120}>
+                <button
+                  onClick={() => navigate(step.to)}
+                  className="group relative flex h-full w-full flex-col items-start rounded-2xl border border-[#e6edf3] bg-white p-6 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200/80 hover:shadow-[0_20px_40px_-20px_rgba(11,37,69,0.24)]"
+                >
+                  <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 text-white shadow-[0_10px_20px_-10px_rgba(37,99,235,0.7)]">
+                    <step.icon className="h-5 w-5" />
+                  </div>
+                  <span className="absolute right-5 top-5 font-mono text-[11px] font-bold text-[#b6c2cf]">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="mt-5 text-[15.5px] font-bold tracking-tight text-[#0b2545]">{step.title}</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#52637a]">{step.desc}</p>
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ About ============ */}
+      <section id="about" className="scroll-mt-20 bg-gradient-to-b from-white to-blue-50/40">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2">
           <Reveal>
-            <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> Why teams choose Enterprise Intelligence Platform
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Built for the way teams actually work
+            <Badge variant="primary" className="gap-1.5 bg-orange-50 text-orange-600">
+              <Globe className="h-3.5 w-3.5" /> About Enterprise Intelligence
+            </Badge>
+            <h2 className="mt-4 text-3xl font-bold tracking-[-0.02em] text-[#0b2545] sm:text-4xl">
+              Purpose-built for the way teams make decisions today
             </h2>
-            <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-              Deep search is a convenience. Enterprise Intelligence Platform makes it the default — turning scattered spreadsheets, documents, and meetings into a single, queryable workspace.
+            <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-[#52637a]">
+              Enterprise Intelligence connects your documents, data sources, and knowledge graph into one
+              secure workspace. Ask questions in plain language, explore live dashboards, and back every
+              decision with evidence you can verify.
             </p>
             <ul className="mt-7 space-y-3">
-              {HIGHLIGHTS.map((h, i) => (
-                <Reveal key={h} as="li" delay={i * 80}>
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full gradient-brand">
-                      <Check className="h-3 w-3" />
-                    </span>
-                    <span className="text-[14px] text-secondary-foreground">{h}</span>
-                  </div>
-                </Reveal>
+              {[
+                'Answers with citations you can verify, every time',
+                'Global ⌘K palette to open anything in two keystrokes',
+                'Role-based permissions and full audit logging',
+                'Works on any screen — phone, tablet, or desktop',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white">
+                    <Check className="h-3 w-3" />
+                  </span>
+                  <span className="text-[14px] text-[#40536e]">{item}</span>
+                </li>
               ))}
             </ul>
-            <div className="mt-9">
+            <div className="mt-8 flex flex-wrap gap-3">
               {isAuthenticated ? (
-                <Button size="lg" onClick={() => navigate('/search-home')}>
+                <Button size="lg" onClick={() => navigate('/dashboard')}>
                   Explore your workspace <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : (
@@ -653,112 +495,28 @@ export default function LandingPage() {
                   Get started free <ArrowRight className="h-4 w-4" />
                 </Button>
               )}
+              <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
+                Login
+              </Button>
             </div>
           </Reveal>
 
-          {/* Floating stack of product cards */}
-          <div className="relative hidden lg:block">
-            <div className="relative mx-auto flex h-[440px] max-w-md flex-col justify-center gap-4">
-              <Reveal delay={40}>
-                <div className="glass-strong ml-auto w-[85%] -rotate-1 rounded-2xl p-4 shadow-pop transition-transform duration-300 hover:rotate-0">
-                  <p className="text-[12px] font-semibold text-foreground">“Which accounts are most at risk?”</p>
-                  <div className="mt-3 rounded-xl border border-border bg-card/50 p-3">
-                    <p className="text-[12px] leading-relaxed text-secondary-foreground">
-                      3 accounts have churn risk &gt; 70% <span className="text-primary">·</span> 6 sources
-                    </p>
-                    <div className="mt-2 h-1.5 rounded-full bg-secondary">
-                      <div className="confidence-bar w-[84%]" />
-                    </div>
-                  </div>
-                </div>
-              </Reveal>
-              <Reveal delay={120}>
-                <div className="glass-strong mr-auto w-[85%] rotate-1 rounded-2xl p-4 shadow-pop transition-transform duration-300 hover:rotate-0">
-                  <p className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
-                    <Database className="h-3.5 w-3.5 text-primary" /> Entity · Acme Corporation
-                  </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {[
-                      ['Revenue', '$2.4M'],
-                      ['Contracts', '3'],
-                      ['Meetings', '4'],
-                      ['Confidence', '94%'],
-                    ].map(([label, val]) => (
-                      <div key={label} className="rounded-lg border border-border bg-card/50 px-2.5 py-1.5">
-                        <p className="text-[9.5px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                        <p className="font-mono text-[13px] font-medium tabular text-foreground">{val}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Reveal>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============ How it works ============ */}
-      <section id="how-it-works" className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-          <SectionHeading
-            kicker="How it works"
-            title={<>From question to decision, <span className="gradient-text">in seconds</span></>}
-          />
-
-          <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-6">
-            {/* Connector line */}
-            <div className="pointer-events-none absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30 md:block" />
-            <div className="pointer-events-none absolute bottom-0 left-8 top-8 w-px bg-gradient-to-b from-primary/30 via-accent/30 to-primary/30 md:hidden" />
-
-            {STEPS.map((step, i) => (
-              <Reveal key={step.title} delay={i * 120}>
-                <div className="group relative h-full rounded-3xl glass p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop">
-                  <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-2xl gradient-brand shadow-glow-sm">
-                    <step.icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="mt-5 text-[16px] font-semibold tracking-tight text-foreground">{step.title}</h3>
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{step.desc}</p>
-                  <span className="absolute right-5 top-5 font-mono text-[11px] text-muted-foreground">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ Testimonials ============ */}
-      <section id="testimonials" className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-          <SectionHeading
-            kicker="Customers"
-            title={<>Loved by teams that <span className="gradient-text">move fast</span></>}
-            sub="From strategy to operations, teams are getting answers in seconds instead of days."
-          />
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.name} delay={i * 110}>
-                <figure className="group relative flex h-full flex-col rounded-3xl glass p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-pop">
-                  <Quote className="h-6 w-6 text-primary/50" />
-                  <blockquote className="mt-4 flex-1 text-[13.5px] leading-relaxed text-secondary-foreground">
-                    “{t.quote}”
-                  </blockquote>
-                  <figcaption className="mt-6 flex items-center gap-3 border-t border-border/60 pt-5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full gradient-brand text-[12px] font-semibold">
+              <Reveal key={t.name} delay={i * 130} className={cn(i === 0 && 'sm:-translate-y-3')}>
+                <figure className="flex h-full flex-col rounded-2xl border border-[#e6edf3] bg-white p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <Quote className="h-5 w-5 text-orange-400" />
+                  <blockquote className="mt-3 flex-1 text-[13.5px] leading-relaxed text-[#40536e]">“{t.quote}”</blockquote>
+                  <figcaption className="mt-5 flex items-center gap-3 border-t border-[#eef2f6] pt-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-400 text-[11px] font-bold text-white">
                       {t.initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold text-foreground">{t.name}</p>
-                      <p className="truncate text-[11.5px] text-muted-foreground">{t.role}</p>
+                      <p className="truncate text-[13px] font-semibold text-[#0b2545]">{t.name}</p>
+                      <p className="truncate text-[11px] text-[#718096]">{t.role}</p>
                     </div>
-                    <span className="flex gap-0.5 text-primary">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} className="h-3 w-3 fill-current" />
-                      ))}
+                    <span className="flex gap-0.5 text-[#ffb020]">
+                      {Array.from({ length: 5 }).map((_, j) => <Star key={j} className="h-3 w-3 fill-current" />)}
                     </span>
                   </figcaption>
                 </figure>
@@ -768,85 +526,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ Security ============ */}
-      <section id="security" className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-24 sm:px-6 lg:grid-cols-2">
-          <Reveal>
-            <Badge variant="primary" className="gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5" /> Security & governance
-            </Badge>
-            <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
-              Enterprise-grade security, <span className="gradient-text">by design</span>
-            </h2>
-            <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-              Role-based access control, audit logging, and isolated model execution keep your data yours. Every answer you get is backed by evidence you can verify.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-2">
-              {([
-                ['RBAC & permissions', ShieldCheck],
-                ['Audit logging', FileText],
-                ['Evidence-based answers', Check],
-                ['Isolated infrastructure', Globe],
-              ] as Array<[string, React.ElementType]>).map(([label, Icon]) => (
-                <span key={label} className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] text-secondary-foreground">
-                  <Icon className="h-3.5 w-3.5 text-primary" />
-                  {label}
-                </span>
-              ))}
-            </div>
-          </Reveal>
-
-          <Reveal delay={120}>
-            <div className="border-gradient rounded-3xl shadow-pop">
-              <div className="rounded-[calc(1.5rem-1px)] bg-card/70 p-6">
-                <div className="flex items-center gap-2 border-b border-border pb-3">
-                  <Globe className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-semibold text-foreground">Universal search</p>
-                  <Badge variant="muted" className="ml-auto">Acme Corporation</Badge>
-                </div>
-                <div className="mt-4 space-y-2.5">
-                  <div className="flex items-center justify-between rounded-xl glass px-3.5 py-2.5">
-                    <div>
-                      <p className="text-[13px] font-medium text-foreground">Impact summary</p>
-                      <p className="text-[11px] text-muted-foreground">Revenue · contracts · contacts · meetings</p>
-                    </div>
-                    <Database className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: 'Revenue', val: '$2.4M' },
-                      { label: 'Contracts', val: '3' },
-                      { label: 'Meetings', val: '4' },
-                      { label: 'Confidence', val: '94%' },
-                    ].map((k) => (
-                      <div key={k.label} className="glass rounded-lg px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{k.label}</p>
-                        <p className="mt-0.5 font-mono text-sm font-medium text-foreground tabular">{k.val}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
       {/* ============ FAQ ============ */}
-      <section id="faq" className="relative">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      <section id="faq" className="scroll-mt-20">
         <div className="mx-auto max-w-3xl px-4 py-24 sm:px-6">
-          <SectionHeading
-            kicker="FAQ"
-            title="Common questions"
-            sub={
-              <>
-                Can't find what you're looking for?{' '}
-                <Link to="/register" className="gradient-text font-medium hover:underline">Talk to us</Link>.
-              </>
-            }
-          />
+          <SectionHeading kicker="FAQ" title="Common questions" />
           <div className="space-y-2.5">
             {FAQS.map((f, i) => (
               <Reveal key={f.q} delay={i * 40}>
@@ -857,87 +540,95 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ CTA panel ============ */}
-      <section className="relative mx-auto max-w-6xl px-4 pb-24 pt-4 sm:px-6">
-        <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] p-[1px]">
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(135deg, hsl(245 90% 60%), hsl(190 96% 52%))',
-              }}
-            />
-            <div className="relative overflow-hidden rounded-[27px] bg-card/90 px-6 py-16 text-center sm:px-16 sm:py-20">
-              {/* Inner atmosphere */}
-              <div
-                className="pointer-events-none absolute left-1/2 top-0 h-72 w-[560px] -translate-x-1/2 opacity-60"
-                style={{
-                  background:
-                    'radial-gradient(closest-side, hsl(var(--glow-a) / 0.35), transparent 70%)',
-                }}
-              />
-              <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-accent/20 blur-[80px]" />
-              <div className="pointer-events-none absolute -bottom-24 -right-10 h-56 w-56 rounded-full bg-primary/20 blur-[80px]" />
-
+      {/* ============ Contact / final CTA ============ */}
+      <section id="contact" className="scroll-mt-20">
+        <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+          <Reveal>
+            <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0b2545] to-[#123a6b] px-6 py-16 text-center shadow-[0_30px_70px_-30px_rgba(11,37,69,0.6)] sm:px-16 sm:py-20">
+              <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-orange-500/20 blur-[90px]" />
+              <div className="pointer-events-none absolute -bottom-24 -right-20 h-72 w-72 rounded-full bg-blue-500/20 blur-[90px]" />
               <div className="relative">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl gradient-brand shadow-glow-sm">
-                  <Zap className="h-6 w-6" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff6b00] shadow-[0_10px_20px_-8px_rgba(255,107,0,0.8)]">
+                  <Zap className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="mx-auto mt-6 max-w-xl text-3xl font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-4xl">
-                  Turn company knowledge into <span className="gradient-text">confident decisions</span>
+                <h2 className="mx-auto mt-6 max-w-xl text-3xl font-bold leading-tight tracking-[-0.02em] text-white sm:text-4xl">
+                  Turn Your Data into Real Insights
                 </h2>
-                <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+                <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-blue-100/80">
                   {isAuthenticated
                     ? 'Your workspace is ready — pick up right where you left off.'
                     : 'Create an account and get your first evidence-backed answer in minutes.'}
                 </p>
                 <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button size="lg" onClick={() => navigate(primary.to)}>
+                  <Button size="lg" className="bg-[#ff6b00] hover:bg-[#e85f00]" onClick={() => navigate(primary.to)}>
                     {primary.label} <ArrowRight className="h-4 w-4" />
                   </Button>
                   {!isAuthenticated && (
-                    <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
-                      Sign in
+                    <Button size="lg" variant="outline" className="border-blue-300/40 bg-white/5 text-white hover:bg-white/10 hover:text-white" onClick={() => navigate('/login')}>
+                      Login
                     </Button>
                   )}
                 </div>
                 {!isAuthenticated && (
-                  <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-blue-100/70">
                     <Command className="h-3.5 w-3.5" /> No credit card required · Set up in minutes
                   </p>
                 )}
               </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        </div>
       </section>
 
       {/* ============ Footer ============ */}
-      <footer className="relative border-t border-border/70">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-6 px-4 py-10 sm:flex-row sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg gradient-brand">
-              <Network className="h-3.5 w-3.5" />
+      <footer className="border-t border-[#eef2f6] bg-white">
+        <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-4">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ff6b00]">
+                  <Network className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <span className="block text-[14px] font-bold tracking-tight text-[#0b2545]">Enterprise Intelligence</span>
+                  <span className="block text-[10.5px] text-[#718096]">Data-Driven Decisions</span>
+                </div>
+              </div>
+              <p className="mt-4 max-w-sm text-[13px] leading-relaxed text-[#6b7d94]">
+                Powerful analytics and real-time insights to help you grow, optimize, and lead — everything backed by evidence.
+              </p>
             </div>
+
             <div>
-              <span className="block text-[14px] font-semibold tracking-tight text-foreground">Enterprise Intelligence Platform</span>
-              <span className="block text-[10.5px] text-muted-foreground">Enterprise Workspace</span>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0b2545]">Platform</p>
+              <nav className="mt-3 flex flex-col items-start gap-2 text-[13px] text-[#52637a]" aria-label="Platform">
+                <button onClick={() => navigate('/dashboard')} className="transition-colors hover:text-[#ff6b00]">Home Dashboard</button>
+                <button onClick={() => navigate('/business-intelligence')} className="transition-colors hover:text-[#ff6b00]">Business Intelligence</button>
+                <button onClick={() => navigate('/analytics')} className="transition-colors hover:text-[#ff6b00]">Analytics</button>
+                <button onClick={() => navigate('/reports')} className="transition-colors hover:text-[#ff6b00]">Reports</button>
+              </nav>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0b2545]">Resources</p>
+              <nav className="mt-3 flex flex-col items-start gap-2 text-[13px] text-[#52637a]" aria-label="Resources">
+                <button onClick={() => navigate('/documents')} className="transition-colors hover:text-[#ff6b00]">Data Sources</button>
+                <button onClick={() => navigate('/chat')} className="transition-colors hover:text-[#ff6b00]">AI Insights</button>
+                <a href="#features" className="transition-colors hover:text-[#ff6b00]">Features</a>
+              </nav>
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] text-muted-foreground" aria-label="Footer">
-            <a href="#product" className="transition-colors hover:text-foreground">Product</a>
-            <a href="#how-it-works" className="transition-colors hover:text-foreground">How it works</a>
-            <a href="#testimonials" className="transition-colors hover:text-foreground">Customers</a>
-            <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
-            <Link to="/register" className="transition-colors hover:text-foreground">Getting started</Link>
-          </nav>
-
-          <p className="text-[11.5px] text-muted-foreground">
-            © {new Date().getFullYear()} Enterprise Intelligence Platform. Built for teams that move fast.
-          </p>
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[#eef2f6] pt-6 sm:flex-row">
+            <p className="text-[11.5px] text-[#8a99ac]">
+              © {new Date().getFullYear()} Enterprise Intelligence Platform. Built for teams that move fast.
+            </p>
+            <div className="flex items-center gap-4 text-[11.5px] text-[#8a99ac]">
+              <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Enterprise secure</span>
+              <span className="flex items-center gap-1.5"><Gauge className="h-3.5 w-3.5 text-blue-500" /> 99.9% uptime</span>
+              <span className="flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5 text-orange-500" /> Support</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

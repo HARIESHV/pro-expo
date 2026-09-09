@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 
-import { isAllowedCompanyEmail } from '../utils/emailValidation';
+const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+const GMAIL_ERROR_MESSAGE = 'Please use a valid Gmail address ending with @gmail.com.';
 
 export const registerSchema = z.object({
   firstName: z
@@ -20,7 +21,7 @@ export const registerSchema = z.object({
     .toLowerCase()
     .email('Please enter a valid email address')
     .max(254, 'Email address is too long')
-    .refine(isAllowedCompanyEmail, 'Only company.com email addresses are allowed.'),
+    .refine((val) => GMAIL_REGEX.test(val), GMAIL_ERROR_MESSAGE),
   password: z
     .string({ required_error: 'Password is required', invalid_type_error: 'Password must be text' })
     .min(8, 'Password must be at least 8 characters')
@@ -33,9 +34,32 @@ export const loginSchema = z.object({
     .string({ required_error: 'Email address is required' })
     .trim()
     .toLowerCase()
-    .email('Please enter a valid email address')
-    .refine(isAllowedCompanyEmail, 'Only company.com email addresses are allowed.'),
+    .email('Please enter a valid email address'),
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
+});
+
+export const sendOtpSchema = z.object({
+  email: z
+    .string({ required_error: 'Email address is required' })
+    .trim()
+    .toLowerCase()
+    .email('Please enter a valid email address')
+    .max(254, 'Email address is too long')
+    .refine((val) => GMAIL_REGEX.test(val), GMAIL_ERROR_MESSAGE),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z
+    .string({ required_error: 'Email address is required' })
+    .trim()
+    .toLowerCase()
+    .email('Please enter a valid email address')
+    .max(254, 'Email address is too long')
+    .refine((val) => GMAIL_REGEX.test(val), GMAIL_ERROR_MESSAGE),
+  otp: z
+    .string({ required_error: 'OTP is required' })
+    .trim()
+    .regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
 });
 
 export function validate(schema: z.ZodObject<z.ZodRawShape>, message = 'Invalid request data') {
@@ -48,9 +72,11 @@ export function validate(schema: z.ZodObject<z.ZodRawShape>, message = 'Invalid 
         if (!errors[key]) errors[key] = [];
         errors[key].push(issue.message);
       }
+      const firstMessage = result.error.issues[0]?.message;
+      const topMessage = firstMessage || message;
       res.status(400).json({
         success: false,
-        message,
+        message: topMessage,
         code: 'VALIDATION_ERROR',
         errors,
       });

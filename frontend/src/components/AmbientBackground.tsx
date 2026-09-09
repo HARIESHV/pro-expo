@@ -42,7 +42,7 @@ const BLOB_PRESETS: Record<Tone, { className: string; positions: Array<{ cls: st
 /**
  * Fixed, non-interactive layered ambient background: aurora color fields,
  * a fading grid, and a quietening vignette. Renders at z-index 0 so page
- * content paints above it. Works in both light and dark themes.
+ * content paints above it.
  */
 export function AmbientBackground({ tone = 'app', className }: { tone?: Tone; className?: string }) {
   const preset = BLOB_PRESETS[tone];
@@ -54,7 +54,10 @@ export function AmbientBackground({ tone = 'app', className }: { tone?: Tone; cl
           <div
             className="h-full w-full"
             style={{
-              background: `radial-gradient(circle at center, hsl(var(--glow-a) / 0.32) 0%, hsl(var(--glow-b) / 0.18) 40%, transparent 70%)`,
+              background:
+                tone === 'app'
+                  ? `radial-gradient(circle at center, hsl(var(--glow-a) / 0.2) 0%, hsl(var(--glow-b) / 0.1) 40%, transparent 70%)`
+                  : `radial-gradient(circle at center, hsl(var(--glow-a) / 0.32) 0%, hsl(var(--glow-b) / 0.18) 40%, transparent 70%)`,
               filter: i === 1 ? 'hue-rotate(20deg)' : undefined,
             }}
           />
@@ -71,7 +74,7 @@ export function AmbientBackground({ tone = 'app', className }: { tone?: Tone; cl
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, hsl(231 50% 4% / 0.28) 0%, transparent 22%), radial-gradient(ellipse 90% 60% at 50% 110%, hsl(231 50% 4% / 0.25), transparent 60%)',
+            'linear-gradient(180deg, hsl(var(--ambient-vignette) / 0.14) 0%, transparent 22%), radial-gradient(ellipse 90% 60% at 50% 110%, hsl(var(--ambient-vignette) / 0.16), transparent 60%)',
         }}
       />
     </div>

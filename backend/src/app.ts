@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import { env } from './config/env';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { logger } from './config/logger';
+import { isSmtpConfigured } from './services/emailService';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -33,6 +34,10 @@ import decisionRoutes from './routes/decisions';
 import ragRoutes from './routes/rag';
 import salesRoutes from './routes/sales';
 import customerRoutes from './routes/customers';
+import contactRoutes from './routes/contact';
+import employeeReportsRoutes from './routes/employeeReports';
+import adminReportsRoutes from './routes/adminReports';
+import adminMembersRoutes from './routes/adminMembers';
 
 const app = express();
 
@@ -84,14 +89,20 @@ app.use('/api/', limiter);
 // Static uploads
 app.use('/uploads', express.static(path.join(process.cwd(), env.UPLOAD_DIR)));
 
-// Health check
+// Health check — spec requires success:true + message "Backend server is running"
 app.get('/api/health', (_req, res) => {
   const dbConnected = mongoose.connection.readyState === 1;
   const aiConfigured = !!env.GROQ_API_KEY;
+  const contactConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL && env.ADMIN_EMAIL);
+  const otpEmailConfigured = isSmtpConfigured();
   res.json({
+    success: true,
+    message: 'Backend server is running',
     status: dbConnected ? 'ok' : 'error',
     database: dbConnected ? 'connected' : 'disconnected',
     ai: aiConfigured ? 'configured' : 'not_configured',
+    contactEmail: contactConfigured ? 'configured' : 'not_configured',
+    otpEmail: otpEmailConfigured ? 'configured' : 'not_configured',
   });
 });
 
@@ -116,6 +127,10 @@ app.use('/api/decisions', decisionRoutes);
 app.use('/api/rag', ragRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/employee-reports', employeeReportsRoutes);
+app.use('/api/admin/reports', adminReportsRoutes);
+app.use('/api/admin/members', adminMembersRoutes);
 
 // ---------------------------------------------------------------
 // Production single-origin hosting: serve the built frontend from

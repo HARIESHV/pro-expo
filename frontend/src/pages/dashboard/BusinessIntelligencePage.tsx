@@ -1,19 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowRight,
-  Database,
   FileText,
-  Globe,
   MessageSquare,
-  Package,
   RefreshCw,
-  ShieldAlert,
-  TrendingDown,
-  TrendingUp,
-  Users,
-  Wrench,
 } from 'lucide-react';
 import { businessIntelligenceApi } from '../../api/businessIntelligence';
 import CompanyAnalysisPanel from '../../components/dashboard/CompanyAnalysisPanel';
@@ -25,8 +16,6 @@ import {
   Direction,
 } from '../../types/businessIntelligence';
 
-const money = (v: number | null | undefined): string => (v == null || !Number.isFinite(v) ? '—' : `$${Math.round(v).toLocaleString()}`);
-const pct = (v: number | null | undefined): string => (v == null || !Number.isFinite(v) ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
 const safeText = (value: unknown, fallback = ''): string => {
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
@@ -101,14 +90,14 @@ function normalizeCompany(raw: Partial<CompanyIntelligence> | null | undefined, 
     direction: (safeText(presentSource.direction, 'unavailable') as Direction) || 'unavailable',
     profit: typeof presentSource.profit === 'number' ? presentSource.profit as number : null,
     profitMarginPct: typeof presentSource.profitMarginPct === 'number' ? presentSource.profitMarginPct as number : null,
-    latestRevenueLabel: safeText(presentSource.latestRevenueLabel, 'Data unavailable'),
+    latestRevenueLabel: safeText(presentSource.latestRevenueLabel),
     currency: safeText(presentSource.currency, 'USD'),
     available: Boolean(presentSource.available),
     notes: Array.isArray(presentSource.notes) ? presentSource.notes as string[] : [],
   };
   const future: CompanyIntelligence['future'] = {
     available: Boolean(futureSource.available),
-    reason: safeText(futureSource.reason, 'Forecast unavailable because insufficient historical data exists.'),
+    reason: safeText(futureSource.reason),
     basis: Array.isArray(futureSource.basis) ? (futureSource.basis as string[]) : [],
     horizonYears: typeof futureSource.horizonYears === 'number' ? (futureSource.horizonYears as number) : 0,
     trendDirection: (safeText(futureSource.trendDirection, 'unavailable') as CompanyIntelligence['future']['trendDirection']) || 'unavailable',
@@ -195,24 +184,24 @@ function normalizeAnalysis(raw: unknown, longQuery: string, shortQuery: string):
       growthSeries: asArray(sourceComparison.growthSeries),
     },
     aiInsights: {
-      executiveSummary: safeText(sourceAiInsights.executiveSummary, 'AI analysis unavailable for this response.'),
+      executiveSummary: safeText(sourceAiInsights.executiveSummary),
       historicalInsights: Array.isArray(sourceAiInsights.historicalInsights) ? sourceAiInsights.historicalInsights as string[] : [],
       currentInsights: Array.isArray(sourceAiInsights.currentInsights) ? sourceAiInsights.currentInsights as string[] : [],
-      futureOutlook: safeText(sourceAiInsights.futureOutlook, 'Forecast unavailable.'),
-      revenueAnalysis: safeText(sourceAiInsights.revenueAnalysis, 'Revenue analysis unavailable.'),
-      growthAnalysis: safeText(sourceAiInsights.growthAnalysis, 'Growth analysis unavailable.'),
-      riskAnalysis: safeText(sourceAiInsights.riskAnalysis, 'Risk analysis unavailable.'),
-      opportunityAnalysis: safeText(sourceAiInsights.opportunityAnalysis, 'Opportunity analysis unavailable.'),
-      longVsShortComparison: safeText(sourceAiInsights.longVsShortComparison, 'Comparison unavailable.'),
-      finalBusinessIntelligenceSummary: safeText(sourceAiInsights.finalBusinessIntelligenceSummary, 'Business Intelligence summary unavailable.'),
+      futureOutlook: safeText(sourceAiInsights.futureOutlook),
+      revenueAnalysis: safeText(sourceAiInsights.revenueAnalysis),
+      growthAnalysis: safeText(sourceAiInsights.growthAnalysis),
+      riskAnalysis: safeText(sourceAiInsights.riskAnalysis),
+      opportunityAnalysis: safeText(sourceAiInsights.opportunityAnalysis),
+      longVsShortComparison: safeText(sourceAiInsights.longVsShortComparison),
+      finalBusinessIntelligenceSummary: safeText(sourceAiInsights.finalBusinessIntelligenceSummary),
       generatedAt: safeText(sourceAiInsights.generatedAt, ''),
       provider: safeText(sourceAiInsights.provider, 'unavailable'),
-      basisNote: safeText(sourceAiInsights.basisNote, 'No complete AI response was returned.'),
+      basisNote: safeText(sourceAiInsights.basisNote),
     },
     sources: Array.isArray(source.sources) ? source.sources as CompanyAnalysisResult['sources'] : [],
     meta: {
       dataAvailable: Boolean(sourceMeta.dataAvailable),
-      forecastBasis: safeText(sourceMeta.forecastBasis, 'Forecast unavailable.'),
+      forecastBasis: safeText(sourceMeta.forecastBasis),
       currencyNormalization: safeText(sourceMeta.currencyNormalization, 'USD'),
       notes: Array.isArray(sourceMeta.notes) ? sourceMeta.notes as string[] : [],
       analysisId: safeText(sourceMeta.analysisId, ''),
@@ -243,159 +232,6 @@ class BIErrorBoundary extends React.Component<{ onRetry: () => void; children: R
       </div>
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// Presentational building blocks
-// ---------------------------------------------------------------------------
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <div className="glass rounded-2xl p-6 card-glow animate-fade-in">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="font-semibold text-foreground text-sm uppercase tracking-wider">{title}</h2>
-          {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function DirectionArrow({ dir }: { dir: Direction }) {
-  if (dir === 'up') return <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />;
-  if (dir === 'down') return <TrendingDown className="w-3.5 h-3.5 text-red-400" />;
-  return <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />;
-}
-
-// ---------------------------------------------------------------------------
-// Company detail sections built exclusively from the analysis result (biData).
-// Facets the real-world company dataset does not provide are labelled
-// "Data unavailable for <company>" instead of showing unrelated data.
-// ---------------------------------------------------------------------------
-function RevenuePerformanceCard({ biData }: { biData: CompanyAnalysisResult }) {
-  const { comparison } = biData;
-  const rows = [
-    {
-      name: comparison.long.displayName || 'Long',
-      revenue: comparison.long.latestRevenue,
-      growth: comparison.long.growthPct,
-      momentum: comparison.long.momentum,
-    },
-    {
-      name: comparison.short.displayName || 'Short',
-      revenue: comparison.short.latestRevenue,
-      growth: comparison.short.growthPct,
-      momentum: comparison.short.momentum,
-    },
-  ];
-  return (
-    <Card title="Revenue Performance" subtitle={`Latest available revenue for the selected pair · ${biData.meta.currencyNormalization}`}>
-      <div className="space-y-3">
-        {rows.map((r) => (
-          <div key={r.name} className="flex items-center justify-between rounded-xl bg-secondary/30 border border-border/50 p-3">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{r.name}</p>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <DirectionArrow dir={r.momentum} /> {r.momentum} momentum
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-foreground">{money(r.revenue)}</p>
-              <p className={`text-[11px] font-semibold ${r.growth != null && r.growth >= 0 ? 'text-emerald-400' : r.growth != null ? 'text-red-400' : 'text-muted-foreground'}`}>
-                {pct(r.growth)} growth
-              </p>
-            </div>
-          </div>
-        ))}
-        <p className="text-[11px] text-muted-foreground pt-1">
-          Away from the trade, per-company revenue, growth and direction come from <span className="text-foreground/80">{biData.revenueTrend.long.currency} figures</span>{' '}
-          gathered for {biData.companies.long.resolution.displayName} and {biData.companies.short.resolution.displayName} by the data layer.
-        </p>
-      </div>
-    </Card>
-  );
-}
-
-function UnavailableCard({
-  title,
-  subtitle,
-  icon,
-  companyName,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  companyName: string;
-}) {
-  return (
-    <Card title={title} subtitle={subtitle}>
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        {icon}
-        <p className="text-sm text-foreground/80">{title} unavailable for {companyName}.</p>
-        <p className="text-xs text-muted-foreground mt-1">{subtitle} is not available from the connected company data source.</p>
-      </div>
-    </Card>
-  );
-}
-
-function CompanyMetricCard({ title, info, capability, items, emptyText, icon }: {
-  title: string;
-  info: CompanyIntelligence;
-  capability: keyof CompanyIntelligence['capabilities'];
-  items?: Array<{ name: string; revenue: number | null; sharePct: number | null; source: string }>;
-  emptyText: string;
-  icon: React.ReactNode;
-}) {
-  const name = info.resolution.displayName;
-  if (!info.capabilities[capability]) {
-    return <UnavailableCard title={title} subtitle={emptyText} icon={icon} companyName={name} />;
-  }
-  return (
-    <Card title={title} subtitle={name}>
-      <div className="space-y-2">
-        {(items || []).map((item) => (
-          <div key={item.name} className="flex items-center justify-between border-b border-border/40 pb-2 text-xs">
-            <span className="text-foreground/80">{item.name}</span>
-            <span className="text-foreground font-semibold">{item.revenue != null ? money(item.revenue) : item.sharePct != null ? `${item.sharePct.toFixed(1)}%` : '—'}</span>
-          </div>
-        ))}
-        <p className="text-[10px] text-muted-foreground pt-1">Source: {(items || [])[0]?.source || 'connected company data'}</p>
-      </div>
-    </Card>
-  );
-}
-
-function AnomalyCard({ info }: { info: CompanyIntelligence }) {
-  if (!info.capabilities.anomalies) return <UnavailableCard title="Anomaly Detection" subtitle="Insufficient historical company data for anomaly detection" icon={<ShieldAlert className="w-8 h-8 text-muted-foreground mb-3" />} companyName={info.resolution.displayName} />;
-  return (
-    <Card title="Anomaly Detection" subtitle={info.resolution.displayName}>
-      {info.anomalies.length ? info.anomalies.map((item) => <div key={`${item.period}-${item.metric}`} className="mb-2 text-xs text-foreground/80"><span className="font-semibold">{item.period} · {item.metric}</span><p className="text-muted-foreground mt-1">{item.description}</p></div>) : <p className="text-xs text-muted-foreground">No unusual deviations detected in the selected company&apos;s historical revenue.</p>}
-    </Card>
-  );
-}
-
-function CompanyDetailSections({ biData }: { biData: CompanyAnalysisResult }) {
-  const companies = [biData.companies.long, biData.companies.short];
-  return (
-    <>
-      <div className="flex items-baseline gap-2 mt-10 mb-4 px-1">
-        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Company Detail</h2>
-        <span className="text-[11px] text-muted-foreground">
-          Built solely from the analysis above. Facets the company dataset does not provide are labelled unavailable.
-        </span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <RevenuePerformanceCard biData={biData} />
-        {companies.map((info) => <CompanyMetricCard key={`region-${info.resolution.nameKey}`} title="Revenue by Region" info={info} capability="regionalRevenue" items={info.segments.regions} emptyText="Regional revenue data" icon={<Globe className="w-8 h-8 text-muted-foreground mb-3" />} />)}
-        {companies.map((info) => <CompanyMetricCard key={`product-${info.resolution.nameKey}`} title="Revenue by Product" info={info} capability="productRevenue" items={info.segments.products} emptyText="Product-level revenue data" icon={<Package className="w-8 h-8 text-muted-foreground mb-3" />} />)}
-        {companies.map((info) => <CompanyMetricCard key={`customer-${info.resolution.nameKey}`} title="Customers by Segment" info={info} capability="customerSegments" items={info.segments.customerSegments} emptyText="Customer segment data is not available from the connected company data source" icon={<Users className="w-8 h-8 text-muted-foreground mb-3" />} />)}
-        {companies.map((info) => <AnomalyCard key={`anomaly-${info.resolution.nameKey}`} info={info} />)}
-        {companies.map((info) => <UnavailableCard key={`risk-${info.resolution.nameKey}`} title="Key Risk Accounts" subtitle="Account-level risk data is unavailable for the selected company" icon={<AlertTriangle className="w-8 h-8 text-muted-foreground mb-3" />} companyName={info.resolution.displayName} />)}
-        {companies.map((info) => <UnavailableCard key={`operations-${info.resolution.nameKey}`} title="Operations" subtitle="Operational data unavailable for the selected company" icon={<Wrench className="w-8 h-8 text-muted-foreground mb-3" />} companyName={info.resolution.displayName} />)}
-      </div>
-    </>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +324,7 @@ export default function BusinessIntelligencePage() {
           </button>
           <button
             onClick={() => navigate('/chat')}
-            className="flex items-center gap-2 rounded-lg gradient-brand px-3 py-1.5 text-xs font-medium text-white transition-colors hover:opacity-90"
+            className="flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600"
           >
             <MessageSquare className="w-3.5 h-3.5" /> Ask AI Agent
           </button>
@@ -508,8 +344,6 @@ export default function BusinessIntelligencePage() {
           onAnalyze={runAnalysis}
         />
 
-        {/* Lower sections are built exclusively from the same biData */}
-        {biData && !isLoading && <CompanyDetailSections biData={biData} />}
       </BIErrorBoundary>
     </div>
   );

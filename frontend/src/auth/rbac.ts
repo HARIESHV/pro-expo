@@ -6,6 +6,8 @@ export type Permission =
   | 'reports.export'
   | 'reports.delete'
   | 'reports.view_all'
+  | 'reports.employee_submit'
+  | 'reports.admin_review'
   | 'dashboards.executive'
   | 'dashboards.analytics'
   | 'dashboards.risks'
@@ -13,6 +15,7 @@ export type Permission =
   | 'dashboards.documents'
   | 'dashboards.knowledge_graph'
   | 'dashboards.evaluate_graph'
+  | 'dashboards.admin'
   | 'universal_search';
 
 // Normal Users/Students have full access to every user-facing feature.
@@ -24,6 +27,8 @@ const USER_PERMISSIONS: Permission[] = [
 ];
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+  super_admin: USER_PERMISSIONS,
+  admin: USER_PERMISSIONS,
   ceo: USER_PERMISSIONS,
   manager: USER_PERMISSIONS,
   employee: USER_PERMISSIONS,

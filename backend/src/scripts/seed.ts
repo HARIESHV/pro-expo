@@ -148,6 +148,20 @@ async function seed() {
       isEmailVerified: true,
     });
 
+    // Dedicated Admin role for Report Review workflow (spec §1)
+    const adminReviewer = await User.create({
+      email: 'admin@admin.com',
+      password: 'Admin123!',
+      firstName: 'Report',
+      lastName: 'Admin',
+      displayName: 'Report Admin',
+      organizationId: org._id,
+      departmentId: deptHR._id,
+      roles: ['admin'],
+      status: 'active',
+      isEmailVerified: true,
+    });
+
     const manager = await User.create({
       email: 'manager@company.com',
       password: 'Password123!',

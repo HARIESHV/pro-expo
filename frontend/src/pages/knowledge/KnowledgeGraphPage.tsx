@@ -16,7 +16,6 @@ import {
   Check,
   Gauge,
 } from 'lucide-react';
-import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../utils/cn';
 import { GraphCanvas, NODE_COLORS, edgeLabel } from './GraphCanvas';
@@ -86,7 +85,6 @@ export default function KnowledgeGraphPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const entityParam = searchParams.get('entity');
-  const { theme } = useTheme();
   const [entityTypes, setEntityTypes] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<KnowledgeGraphEdge | null>(null);
@@ -551,7 +549,6 @@ export default function KnowledgeGraphPage() {
         ) : (
           <GraphCanvas
             data={displayData}
-            theme={theme}
             selectedId={selectedId}
             onSelect={handleSelectNode}
             selectedEdgeId={selectedEdge?.id ?? null}

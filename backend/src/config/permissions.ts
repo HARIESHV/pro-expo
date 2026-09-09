@@ -9,6 +9,8 @@ export type PermissionType =
   | 'reports.export'
   | 'reports.delete'
   | 'reports.view_all'
+  | 'reports.employee_submit'
+  | 'reports.admin_review'
   | 'dashboards.executive'
   | 'dashboards.analytics'
   | 'dashboards.risks'
@@ -17,23 +19,26 @@ export type PermissionType =
   | 'dashboards.documents'
   | 'dashboards.knowledge_graph'
   | 'dashboards.evaluate_graph'
+  | 'dashboards.admin'
   | 'universal_search';
 
 export const ALL_PERMISSIONS: PermissionType[] = [
   'users.view', 'users.manage', 'audit_logs.view',
   'reports.view', 'reports.generate', 'reports.export', 'reports.delete', 'reports.view_all',
+  'reports.employee_submit', 'reports.admin_review',
   'dashboards.executive', 'dashboards.analytics', 'dashboards.risks', 'dashboards.bi', 'dashboards.di',
   'dashboards.documents', 'dashboards.knowledge_graph', 'dashboards.evaluate_graph',
+  'dashboards.admin',
   'universal_search'
 ];
 
-// Student-only platform: every user has full access to every dashboard,
-// mirroring the frontend's single-user RBAC model (no admin/superadmin tiers).
+// RBAC: admin/super_admin have full access including admin dashboard; employees limited.
 export const ROLE_PERMISSIONS: Record<UserRole, PermissionType[]> = {
   super_admin: ALL_PERMISSIONS,
+  admin: ALL_PERMISSIONS,
   ceo: ALL_PERMISSIONS,
   manager: ALL_PERMISSIONS,
-  employee: ALL_PERMISSIONS,
+  employee: ['reports.view','reports.generate','reports.export','reports.delete','reports.employee_submit','dashboards.executive','dashboards.analytics','dashboards.risks','dashboards.bi','dashboards.di','dashboards.documents','dashboards.knowledge_graph','dashboards.evaluate_graph','universal_search'],
   analyst: ALL_PERMISSIONS,
   hr: ALL_PERMISSIONS,
   finance: ALL_PERMISSIONS,

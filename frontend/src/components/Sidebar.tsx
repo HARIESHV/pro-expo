@@ -16,14 +16,16 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Bell,
   Settings,
   Sparkles,
+  Users,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import { cn } from '../utils/cn';
 import { hasPermission as hasPermissionUtil, Permission } from '../auth/rbac';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { BrandLockup } from './BrandLockup';
 
 interface NavItem {
   to: string;
@@ -37,32 +39,48 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const primaryNav: NavItem[] = [
-  { to: '/chat', icon: MessageSquare, label: 'AI Chat' },
-  { to: '/search-home', icon: Search, label: 'Universal Search', permission: 'universal_search' as Permission },
-  { to: '/documents', icon: FileText, label: 'Documents', permission: 'dashboards.documents' as Permission },
-];
-
-const overviewNav: NavItem[] = [
-  { to: '/dashboard', icon: Home, label: 'Executive Dashboard', permission: 'dashboards.executive' as Permission },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics', permission: 'dashboards.analytics' as Permission },
-  { to: '/reports', icon: BookOpen, label: 'Reports', permission: 'reports.view' as Permission },
-  { to: '/risks', icon: AlertTriangle, label: 'Risk Dashboard', permission: 'dashboards.risks' as Permission },
-];
-
-const intelligenceNav: NavItem[] = [
-  { to: '/agents', icon: Bot, label: 'AI Agents' },
-  { to: '/query-history', icon: History, label: 'Query History' },
-  { to: '/knowledge-graph', icon: Network, label: 'Knowledge Graph', permission: 'dashboards.knowledge_graph' as Permission },
-  { to: '/evaluate-graph', icon: Shield, label: 'Evaluate Graph', permission: 'dashboards.evaluate_graph' as Permission },
-  { to: '/business-intelligence', icon: TrendingUp, label: 'Business Intelligence', permission: 'dashboards.bi' as Permission },
-];
+const isAdminUser = (roles?: string[]) => !!roles && roles.some(r=> ['admin','super_admin'].includes(r.toLowerCase()));
 
 const groups: NavGroup[] = [
-  { title: 'Primary', items: primaryNav },
-  { title: 'Overview', items: overviewNav },
-  { title: 'Intelligence', items: intelligenceNav },
+  {
+    title: 'Dashboards',
+    items: [
+      { to: '/dashboard', icon: Home, label: 'Executive Dashboard', permission: 'dashboards.executive' as Permission },
+      { to: '/analytics', icon: BarChart3, label: 'Analytics', permission: 'dashboards.analytics' as Permission },
+      { to: '/reports', icon: BookOpen, label: 'Reports', permission: 'reports.view' as Permission },
+      { to: '/risks', icon: AlertTriangle, label: 'Decision Intelligence', permission: 'dashboards.risks' as Permission },
+      { to: '/business-intelligence', icon: TrendingUp, label: 'Business Intelligence', permission: 'dashboards.bi' as Permission },
+    ],
+  },
+  {
+    title: 'My Reports',
+    items: [
+      { to: '/my-reports', icon: ClipboardCheck, label: 'My Reports' },
+    ],
+  },
+  {
+    title: 'Data Sources',
+    items: [
+      { to: '/documents', icon: FileText, label: 'Documents', permission: 'dashboards.documents' as Permission },
+      { to: '/knowledge-graph', icon: Network, label: 'Knowledge Graph', permission: 'dashboards.knowledge_graph' as Permission },
+      { to: '/evaluate-graph', icon: Shield, label: 'Evaluate Graph', permission: 'dashboards.evaluate_graph' as Permission },
+      { to: '/knowledge-search', icon: Search, label: 'Knowledge Search' },
+    ],
+  },
+  {
+    title: 'AI Insights',
+    items: [
+      { to: '/chat', icon: MessageSquare, label: 'AI Chat' },
+      { to: '/agents', icon: Bot, label: 'AI Agents' },
+      { to: '/search-home', icon: Search, label: 'Universal Search', permission: 'universal_search' as Permission },
+      { to: '/query-history', icon: History, label: 'Query History' },
+    ],
+  },
 ];
+
+// Sections hidden from the ADMIN sidebar ONLY. Normal users keep full access.
+// 'My Reports' must remain visible for admin users per requirements.
+const ADMIN_HIDDEN_GROUPS = new Set(['Dashboards', 'Data Sources', 'AI Insights']);
 
 interface SidebarProps {
   collapsed: boolean;
@@ -122,7 +140,7 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
         {({ isActive }) => (
           <>
             {isActive && (
-              <span className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-500" />
+              <span className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r-full bg-orange-500" />
             )}
             <item.icon className="h-[22px] w-[22px]" strokeWidth={1.8} />
           </>
@@ -143,19 +161,19 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
       to={item.to}
       onClick={onNavigate}
       title={item.label}
-      className={({ isActive }) =>
-        cn(
-          'group relative flex w-full items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-[13.5px] font-medium transition-colors duration-150',
-          isActive
-            ? 'bg-sidebar-active-bg text-sidebar-icon-active'
-            : 'text-sidebar-text hover:bg-sidebar-hover-bg hover:text-sidebar-text-hover',
-        )
-      }
+className={({ isActive }) =>
+          cn(
+            'group relative flex w-full items-center gap-3 rounded-lg py-2 pl-3 pr-3 text-[13.5px] font-medium transition-colors duration-150',
+            isActive
+              ? 'bg-sidebar-active-bg text-sidebar-text-strong'
+              : 'text-sidebar-text hover:bg-sidebar-hover-bg hover:text-sidebar-text-hover',
+          )
+        }
     >
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-500" />
+            <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-orange-500" />
           )}
           <item.icon className="h-[20px] w-[20px] shrink-0" strokeWidth={1.8} />
           <span className="truncate">{item.label}</span>
@@ -172,44 +190,16 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
         collapsed ? 'w-full items-center' : 'w-full'
       )}
     >
-      {/* ── Top: quick action + collapse + profile ───────────────────── */}
-      <div className={cn('flex shrink-0 flex-col', collapsed ? 'items-center gap-2 pt-3.5' : 'gap-3 px-3 pt-4')}>
-        <div className={cn('flex', collapsed ? 'flex-col items-center gap-1.5' : 'items-center justify-between')}>
-          {collapsed ? (
-            <Tooltip delayDuration={250}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={onSearch}
-                  aria-label="Quick actions"
-                  className={cn(
-                    railBtn,
-                    'border border-blue-100 bg-gradient-to-br from-blue-600 to-blue-500 text-white shadow-sm hover:from-blue-700 hover:to-blue-600 hover:text-white'
-                  )}
-                >
-                  <Sparkles className="h-5 w-5" strokeWidth={1.9} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Quick actions</TooltipContent>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={onSearch}
-              aria-label="Quick actions"
-              title="Quick actions"
-              className="flex h-9 flex-1 items-center gap-2.5 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 pl-2.5 text-[13px] font-medium text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-600"
-            >
-              <Sparkles className="h-4 w-4" strokeWidth={1.9} />
-              <span className="truncate">Quick actions</span>
-            </button>
-          )}
-
+      {/* ── Top: brand + quick action + profile ─────────────────────── */}
+      <div className={cn('flex shrink-0 flex-col', collapsed ? 'items-center gap-2 pt-4' : 'gap-3 pt-4')}>
+        <div className={cn('flex items-center', collapsed ? 'w-full flex-col gap-2.5' : 'justify-between px-3.5')}>
+          {collapsed ? <BrandLockup variant="compact" /> : <BrandLockup />}
           <button
             onClick={onToggle}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-bg text-sidebar-muted shadow-sm transition-all duration-150 hover:border-primary/40 hover:text-sidebar-icon-hover',
-              collapsed ? 'mt-0.5' : '',
+              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-hover-bg text-sidebar-muted transition-all duration-150 hover:border-orange-400/40 hover:text-sidebar-icon-hover',
               collapsed && 'rotate-180'
             )}
           >
@@ -217,7 +207,38 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
           </button>
         </div>
 
-        <span className={cn('h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'w-full')} />
+        <span className={cn('h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'mx-3')} />
+
+        {/* Quick actions */}
+        {collapsed ? (
+          <Tooltip delayDuration={250}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onSearch}
+                aria-label="Quick actions"
+                className={cn(
+                  railBtn,
+                  'border border-orange-300/20 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm hover:from-orange-600 hover:to-orange-700 hover:text-white'
+                )}
+              >
+                <Sparkles className="h-5 w-5" strokeWidth={1.9} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Quick actions</TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            onClick={onSearch}
+            aria-label="Quick actions"
+            title="Quick actions"
+            className="mx-3 flex h-9 items-center gap-2.5 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 pl-2.5 text-[13px] font-medium text-white shadow-sm transition-all hover:from-orange-600 hover:to-orange-700"
+          >
+            <Sparkles className="h-4 w-4" strokeWidth={1.9} />
+            <span className="truncate">Quick actions</span>
+          </button>
+        )}
+
+        <span className={cn('h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'mx-3')} />
 
         {/* Profile */}
         {collapsed ? (
@@ -229,7 +250,7 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
                   aria-label="Account"
                   className="flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-150 hover:scale-105"
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-400 text-sm font-semibold text-white shadow-sm">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-sm font-semibold text-white shadow-sm">
                     {initial}
                   </span>
                 </button>
@@ -241,9 +262,9 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
         ) : (
           <button
             onClick={openAccountMenu}
-            className="flex w-full items-center gap-3 rounded-lg py-1 pr-2 text-left transition-colors hover:bg-sidebar-hover-bg"
+            className="mx-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-lg border border-white/5 bg-white/5 px-2 py-1.5 text-left transition-colors hover:bg-sidebar-hover-bg"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-blue-400 text-sm font-semibold text-white shadow-sm">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-sm font-semibold text-white shadow-sm">
               {initial}
             </span>
             <span className="min-w-0 flex-1">
@@ -266,13 +287,16 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
         )}
       >
         {groups.map((group, idx) => {
+          // For admin/super_admin users, hide DASHBOARDS / DATA SOURCES / AI INSIGHTS
+          // (admin-only cleanup). Normal users keep the full navigation.
+          if (isAdminUser(user?.roles) && group.title && ADMIN_HIDDEN_GROUPS.has(group.title)) return null;
           const items = group.items.filter((item) => hasPermission(item.permission));
           if (items.length === 0) return null;
           return (
             <div key={idx} className={cn('flex flex-col', collapsed ? 'w-full items-center gap-1' : 'w-full gap-0.5')}>
               {idx > 0 && <span className={cn('my-1.5 h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'w-full')} />}
               {!collapsed && group.title && (
-                  <p className="px-1.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-muted">
+                <p className="px-1.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-muted">
                   {group.title}
                 </p>
               )}
@@ -286,21 +310,29 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
             </div>
           );
         })}
+        {isAdminUser(user?.roles) && (
+          <div className={cn('flex flex-col', collapsed ? 'w-full items-center gap-1' : 'w-full gap-0.5')}>
+            <span className={cn('my-1.5 h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'w-full')} />
+            {!collapsed && <p className="px-1.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-sidebar-muted">Admin</p>}
+            <div className={cn('flex flex-col', collapsed ? 'items-center gap-1' : 'gap-0.5')}>
+              {[
+                { to: '/admin/reports', icon: ClipboardCheck, label: 'Report Review' },
+                { to: '/admin/members', icon: Users, label: 'Members' },
+              ].map(item=> (
+                <div key={item.to} className={cn(collapsed ? '' : 'w-full')}>
+                  {collapsed ? renderItemCollapsed(item as any) : renderItemExpanded(item as any)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* ── Bottom: notifications + settings ─────────────────────────── */}
+      {/* ── Bottom: settings ──────────────────────────────────────────── */}
       <div className={cn('flex shrink-0 flex-col', collapsed ? 'items-center gap-1 pb-4' : 'gap-1 px-3 pb-4')}>
         <span className={cn('mb-1.5 h-px bg-sidebar-border', collapsed ? 'w-8 self-center' : 'w-full')} />
         {collapsed ? (
           <>
-            <Tooltip delayDuration={250}>
-              <TooltipTrigger asChild>
-                <button aria-label="Notifications" title="Notifications" className={railBtn}>
-                  <Bell className="h-[22px] w-[22px]" strokeWidth={1.8} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Notifications</TooltipContent>
-            </Tooltip>
             <Tooltip delayDuration={250}>
               <TooltipTrigger asChild>
                 <button aria-label="Settings" title="Settings" className={railBtn} onClick={openAccountMenu}>
@@ -312,13 +344,6 @@ export function Sidebar({ collapsed, onToggle, onSearch, onNavigate }: SidebarPr
           </>
         ) : (
           <>
-            <button
-              aria-label="Notifications"
-              className="group flex w-full items-center gap-3 rounded-lg py-2 pl-2.5 pr-3 text-[13.5px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover-bg hover:text-sidebar-text-hover"
-            >
-              <Bell className="h-[20px] w-[20px] shrink-0" strokeWidth={1.8} />
-              <span className="truncate">Notifications</span>
-            </button>
             <button
               aria-label="Settings"
               className="group flex w-full items-center gap-3 rounded-lg py-2 pl-2.5 pr-3 text-[13.5px] font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover-bg hover:text-sidebar-text-hover"

@@ -7,8 +7,9 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: { email: string; password: string; firstName: string; lastName: string; organizationId: string }) => Promise<void>;
+  setAuth: (user: User, tokens: { accessToken: string; refreshToken: string }) => void;
   logout: () => Promise<void>;
 }
 
@@ -48,7 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { user: u, tokens } = res.data.data!;
     localStorage.setItem('accessToken', tokens.accessToken);
     localStorage.setItem('refreshToken', tokens.refreshToken);
-    setUser(ensurePermissions(u));
+    const authed = ensurePermissions(u);
+    setUser(authed);
+    return authed;
   };
 
   const register = async (data: Parameters<typeof authApi.register>[0]) => {
@@ -62,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(ensurePermissions(payload.user));
   };
 
+  const setAuth = (u: User, tokens: { accessToken: string; refreshToken: string }) => {
+    localStorage.setItem('accessToken', tokens.accessToken);
+    localStorage.setItem('refreshToken', tokens.refreshToken);
+    setUser(ensurePermissions(u));
+  };
+
   const logout = async () => {
     const refreshToken = localStorage.getItem('refreshToken') || '';
     await authApi.logout(refreshToken).catch(() => {});
@@ -71,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, register, setAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

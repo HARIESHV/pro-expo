@@ -31,6 +31,7 @@ interface MasterAgentContext {
   departments?: string[];
   searchMode?: string;
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  documentIds?: string[];
 }
 
 export class MasterIntelligenceAgent {
@@ -60,6 +61,7 @@ export class MasterIntelligenceAgent {
   async execute(rawQuery: string, context: MasterAgentContext): Promise<IntelligenceResponse> {
     const startTime = Date.now();
     const queryId = uuidv4();
+    const isDocumentScoped = !!context.documentIds?.length;
 
     logger.info(`[MasterAgent] Processing query: "${rawQuery.slice(0, 100)}..."`);
 
@@ -75,15 +77,29 @@ export class MasterIntelligenceAgent {
       filters: {},
     };
 
-    try {
-      queryUnderstanding = await understandQuery(rawQuery, context.history || []);
-    } catch (err) {
-      logger.error('[MasterAgent] Query understanding failed, using fallback:', err);
+    if (!isDocumentScoped) {
+      try {
+        queryUnderstanding = await understandQuery(rawQuery, context.history || []);
+      } catch (err) {
+        logger.error('[MasterAgent] Query understanding failed, using fallback:', err);
+      }
     }
 
     logger.info(
       `[MasterAgent] Intent: ${queryUnderstanding.intent}, isEnterprise: ${queryUnderstanding.isEnterprise}, Entities: ${queryUnderstanding.entities.join(', ')}`
     );
+
+    // A document analysis request must always use the document retrieval path.
+    // Otherwise a generic prompt can exit through the structured/general fast
+    // paths before the uploaded document chunks are ever consulted.
+    if (isDocumentScoped) {
+      queryUnderstanding = {
+        ...queryUnderstanding,
+        isEnterprise: true,
+        intent: 'knowledge_retrieval',
+        refinedQuery: rawQuery,
+      };
+    }
 
     // =========================================================================
     // STRUCTURED DATA FAST-PATH
@@ -102,7 +118,7 @@ export class MasterIntelligenceAgent {
     // =========================================================================
     const looksEnterprise = !!queryUnderstanding.isEnterprise ||
       (queryUnderstanding.entities && queryUnderstanding.entities.length > 0);
-    if (looksEnterprise) {
+    if (!isDocumentScoped && looksEnterprise) {
       try {
         const structured = await structuredQueryService.resolve(rawQuery, {
           organizationId: context.organizationId,
@@ -149,7 +165,7 @@ export class MasterIntelligenceAgent {
     // =========================================================================
     // ROUTE 1: General Questions (ChatGPT-Style Conversational AI)
     // =========================================================================
-    if (!queryUnderstanding.isEnterprise) {
+    if (!isDocumentScoped && !queryUnderstanding.isEnterprise) {
       logger.info(`[MasterAgent] General AI Question detected. Executing ChatGPT-style LLM strategy...`);
 
       const systemPrompt = `You are a world-class, intelligent, clear, and highly structured conversational AI assistant (like ChatGPT).
@@ -262,6 +278,7 @@ Guidelines:
           accessLevels: context.accessLevels as never[],
           departments: context.departments,
           topK: 12,
+                  documentIds: context.documentIds,
         }),
         // Universal Search reuse: discovery + authorized dashboard data for the
         // AI. SearchService stays independent; this is the AI consuming it.
@@ -389,7 +406,7 @@ Guidelines:
       /company|organization|corporation|inc\b|ltd\b|llc\b|startup|firm|business|competitor|market|who (is|are)|what (does|is) /.test(rawQuery.toLowerCase());
     const isContextWeak = !retrievedContext.trim() || retrievedContext.length < 50;
 
-    if ((isContextWeak || isPublicQuery) && !allResults.some((r) => r.agentType === 'web_research')) {
+    if (!isDocumentScoped && (isContextWeak || isPublicQuery) && !allResults.some((r) => r.agentType === 'web_research')) {
       logger.info(`[MasterAgent] Enterprise context weak or public entity detected. Triggering WebResearchAgent fallback...`);
       const webAgent = this.agentRegistry.get('web_research');
       if (webAgent) {

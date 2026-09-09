@@ -36,13 +36,13 @@ export function BrandLockup({ variant = 'full', className }: BrandLockupProps) {
   }
 
   return (
-    <div className={cn('flex items-center gap-2.5', className)}>
+    <div className={cn('flex min-w-0 items-center gap-2.5', className)}>
       <BrandIcon className="h-7 w-7 rounded-lg" />
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+        <span className="truncate text-[13px] font-semibold tracking-tight text-sidebar-text-strong">
           Enterprise
         </span>
-        <span className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+        <span className="truncate text-[13px] font-semibold tracking-tight text-sidebar-text-strong">
           Intelligence Platform
         </span>
       </div>

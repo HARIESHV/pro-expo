@@ -18,7 +18,7 @@ const roleSchema = new Schema<IRole>(
     name: {
       type: String,
       required: true,
-      enum: ['super_admin', 'ceo', 'manager', 'employee', 'analyst', 'hr', 'finance', 'sales'],
+      enum: ['super_admin', 'admin', 'ceo', 'manager', 'employee', 'analyst', 'hr', 'finance', 'sales'],
     },
     displayName: { type: String, required: true },
     description: { type: String, default: '' },

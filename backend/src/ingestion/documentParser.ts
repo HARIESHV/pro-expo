@@ -17,9 +17,8 @@ export interface ParsedDocument {
 }
 
 export async function parseDocument(filePath: string, mimeType: string): Promise<ParsedDocument> {
-  const buffer = fs.readFileSync(filePath);
-
   try {
+    const buffer = fs.readFileSync(filePath);
     if (mimeType === 'application/pdf') {
       const data = await pdfParse(buffer);
       return {
@@ -69,6 +68,6 @@ export async function parseDocument(filePath: string, mimeType: string): Promise
     throw new Error(`Unsupported MIME type: ${mimeType}`);
   } catch (error) {
     logger.error(`Failed to parse document: ${filePath}`, error);
-    throw error;
+    throw new Error('Unable to extract readable content from this document.');
   }
 }

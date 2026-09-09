@@ -29,6 +29,12 @@ export interface IDocument extends Document {
   };
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
   processingError?: string;
+  analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
+  analysisError?: string;
+  analysisResponse?: string;
+  analyzedAt?: Date;
+  analysisConversationId?: mongoose.Types.ObjectId;
+  analysisMessageId?: mongoose.Types.ObjectId;
   chunksCount: number;
   isDeleted: boolean;
   collections: mongoose.Types.ObjectId[];
@@ -76,6 +82,16 @@ const documentSchema = new Schema<IDocument>(
       default: 'pending',
     },
     processingError: String,
+    analysisStatus: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending',
+    },
+    analysisError: String,
+    analysisResponse: String,
+    analyzedAt: Date,
+    analysisConversationId: { type: Schema.Types.ObjectId, ref: 'Conversation' },
+    analysisMessageId: { type: Schema.Types.ObjectId, ref: 'Message' },
     chunksCount: { type: Number, default: 0 },
     isDeleted: { type: Boolean, default: false },
     collections: [{ type: Schema.Types.ObjectId, ref: 'Collection' }],

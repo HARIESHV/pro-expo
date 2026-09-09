@@ -1,5 +1,5 @@
 import api from './axios';
-import { ApiResponse, Conversation, Message, IntelligenceResponse } from '../types';
+import { ApiResponse, Conversation, Document, Message, IntelligenceResponse } from '../types';
 
 export const chatApi = {
   createConversation: (title?: string) =>
@@ -11,10 +11,12 @@ export const chatApi = {
   getConversationMessages: (id: string) =>
     api.get<ApiResponse<{ conversation: Conversation; messages: Message[] }>>(`/chat/conversations/${id}`),
 
-  sendMessage: (conversationId: string, content: string) =>
-    api.post<ApiResponse<{ message: Message; intelligence: IntelligenceResponse }>>('/chat/message', {
+  sendMessage: (conversationId: string, content: string, documentId?: string, analyzeDocument = false) =>
+    api.post<ApiResponse<{ message: Message; intelligence?: IntelligenceResponse; document?: Document }>>('/chat/message', {
       conversationId,
       content,
+      documentId,
+      analyzeDocument,
     }),
 
   deleteConversation: (id: string) =>

@@ -6,10 +6,12 @@ import { AppLayout } from './layouts/AppLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminProtectedRoute } from './components/AdminProtectedRoute';
 import { Loader2 } from 'lucide-react';
 
 // Landing Page
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 // Auth pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -33,11 +35,20 @@ const CompanyProfilePage = lazy(() => import('./pages/companies/CompanyProfilePa
 const DocumentsPage = lazy(() => import('./pages/knowledge/DocumentsPage'));
 const KnowledgeGraphPage = lazy(() => import('./pages/knowledge/KnowledgeGraphPage'));
 const EvaluateGraphPage = lazy(() => import('./pages/knowledge/EvaluateGraphPage'));
+const KnowledgeSearchPage = lazy(() => import('./pages/knowledge/SearchPage'));
 
 // Analytics pages
 const AnalyticsPage = lazy(() => import('./pages/analytics/AnalyticsPage'));
 const ReportsPage = lazy(() => import('./pages/analytics/ReportsPage'));
 const RiskDashboardPage = lazy(() => import('./pages/analytics/RiskDashboardPage'));
+
+// Admin pages (new — admin-only)
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminReportDetails = lazy(() => import('./pages/admin/AdminReportDetails'));
+const AdminMembers = lazy(() => import('./pages/admin/AdminMembers'));
+
+// Employee pages
+const EmployeeReportsPage = lazy(() => import('./pages/employee/EmployeeReportsPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +83,7 @@ function AnimatedRoutes() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/* Auth Routes */}
         <Route element={<AuthLayout />}>
@@ -99,6 +111,7 @@ function AnimatedRoutes() {
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/knowledge-graph" element={<ProtectedRoute><KnowledgeGraphPage /></ProtectedRoute>} />
           <Route path="/evaluate-graph" element={<ProtectedRoute><EvaluateGraphPage /></ProtectedRoute>} />
+          <Route path="/knowledge-search" element={<ProtectedRoute><KnowledgeSearchPage /></ProtectedRoute>} />
 
           {/* Analytics */}
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
@@ -106,6 +119,15 @@ function AnimatedRoutes() {
           <Route path="/reports/:reportId" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/reports/:reportId/preview" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/risks" element={<ProtectedRoute><RiskDashboardPage /></ProtectedRoute>} />
+
+          {/* Employee Reports (existing dashboards unchanged, new submission flow) */}
+          <Route path="/my-reports" element={<ProtectedRoute><EmployeeReportsPage /></ProtectedRoute>} />
+
+          {/* Admin — only admin/super_admin */}
+          <Route path="/admin" element={<AdminProtectedRoute><Navigate to="/admin/reports" replace /></AdminProtectedRoute>} />
+          <Route path="/admin/reports" element={<AdminProtectedRoute><AdminReports /></AdminProtectedRoute>} />
+          <Route path="/admin/reports/:id" element={<AdminProtectedRoute><AdminReportDetails /></AdminProtectedRoute>} />
+          <Route path="/admin/members" element={<AdminProtectedRoute><AdminMembers /></AdminProtectedRoute>} />
         </Route>
 
         {/* Redirects */}

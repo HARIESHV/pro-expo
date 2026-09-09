@@ -8,7 +8,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: 'glass text-secondary-foreground',
-        primary: 'border-primary/25 gradient-brand-soft text-primary shadow-glow-sm',
+        primary: 'border-orange-500/25 bg-orange-100 text-orange-600',
         outline: 'border-border text-muted-foreground',
         success: 'border-success/25 bg-success/10 text-success',
         warning: 'border-warning/25 bg-warning/10 text-warning',
@@ -36,7 +36,7 @@ export function Badge({ className, variant, dot, children, ...props }: BadgeProp
             dot === 'success' && 'bg-success',
             dot === 'warning' && 'bg-warning',
             dot === 'destructive' && 'bg-destructive',
-            dot === 'primary' && 'bg-primary'
+            dot === 'primary' && 'bg-orange-500'
           )}
         />
       )}

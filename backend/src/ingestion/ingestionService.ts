@@ -20,6 +20,9 @@ export async function ingestDocument(documentId: string): Promise<IngestionResul
     // Step 1: Parse
     logger.info(`[Ingestion] Parsing document: ${doc.title}`);
     const parsed = await parseDocument(doc.filePath, doc.mimeType);
+    if (!parsed.content.trim()) {
+      throw new Error('Unable to extract readable content from this document.');
+    }
 
     // Step 2: Update metadata from parsing
     await DocumentModel.findByIdAndUpdate(documentId, {
@@ -29,6 +32,9 @@ export async function ingestDocument(documentId: string): Promise<IngestionResul
 
     // Step 3: Chunk
     const chunks = chunkDocument(parsed.content);
+    if (chunks.length === 0) {
+      throw new Error('Unable to extract readable content from this document.');
+    }
     logger.info(`[Ingestion] Created ${chunks.length} chunks`);
 
     // Step 4: Generate embeddings in batch

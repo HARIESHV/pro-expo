@@ -163,7 +163,7 @@ export async function getFinancialSeries(opts: {
 async function retrieveSecFinancials(displayName: string, ticker: string): Promise<FinancialPoint[]> {
   try {
     const tickerResponse = await fetch('https://www.sec.gov/files/company_tickers.json', {
-      headers: { Accept: 'application/json', 'User-Agent': 'Enterprise-Intelligence-Platform/1.0' },
+      headers: { Accept: 'application/json', 'User-Agent': 'Enterprise-Intelligence-Platform/1.0 (admin@company.com)' },
     });
     if (!tickerResponse.ok) return [];
     const tickerRows = (await tickerResponse.json()) as Record<string, { ticker?: string; cik_str?: number }>;

@@ -159,7 +159,7 @@ export default function ReportsPage() {
     return (
       <div className="p-8 max-w-7xl mx-auto">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-          <BookOpen className="w-4 h-4 text-primary" />
+          <BookOpen className="w-4 h-4 text-orange-500" />
           <span>Analytics</span>
         </div>
         <AccessRestricted
@@ -214,7 +214,7 @@ export default function ReportsPage() {
         {/* Generate Report Card */}
         <div className="glass rounded-2xl p-6 card-glow">
           <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-primary" /> Create Intelligence Report
+            <Plus className="w-5 h-5 text-orange-500" /> Create Intelligence Report
           </h2>
 
           {!canGenerate ? (
@@ -231,7 +231,7 @@ export default function ReportsPage() {
                   placeholder="e.g. Q3 Strategic Performance"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   required
                 />
               </div>
@@ -241,7 +241,7 @@ export default function ReportsPage() {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as any)}
-                  className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-4 py-2 rounded-xl bg-secondary border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                 >
                   <option value="executive">Executive Summary</option>
                   <option value="sales">Sales & Revenue</option>
@@ -258,7 +258,7 @@ export default function ReportsPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   />
                 </div>
                 <div>
@@ -267,7 +267,7 @@ export default function ReportsPage() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="w-full px-3 py-1.5 rounded-xl bg-secondary border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   />
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function ReportsPage() {
                         type="checkbox"
                         checked={selectedSources.includes(src.id)}
                         onChange={() => handleSourceToggle(src.id)}
-                        className="accent-primary w-3.5 h-3.5 rounded"
+                        className="accent-orange-500 w-3.5 h-3.5 rounded"
                       />
                     </label>
                   ))}
@@ -306,7 +306,7 @@ export default function ReportsPage() {
                       type="checkbox"
                       checked={c.checked}
                       onChange={(e) => c.setChecked(e.target.checked)}
-                      className="accent-primary w-4 h-4 rounded"
+                      className="accent-orange-500 w-4 h-4 rounded"
                     />
                   </div>
                 ))}
@@ -324,7 +324,7 @@ export default function ReportsPage() {
               <button
                 type="submit"
                 disabled={generateMutation.isPending || !title.trim()}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl gradient-brand text-white text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-50"
+                className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-all disabled:opacity-50"
               >
                 {generateMutation.isPending ? (
                   <>
@@ -342,11 +342,11 @@ export default function ReportsPage() {
         {/* History List */}
         <div className="glass rounded-2xl p-6 card-glow flex-1 flex flex-col min-h-[300px]">
           <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" /> Report History
+            <BookOpen className="w-5 h-5 text-orange-500" /> Report History
           </h2>
           {isListLoading ? (
             <div className="flex items-center justify-center flex-grow">
-              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
             </div>
           ) : reports.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No reports generated yet.</p>
@@ -358,7 +358,7 @@ export default function ReportsPage() {
                   className={cn(
                     'p-3 rounded-xl border transition-all text-left flex items-start gap-2 group relative',
                     selectedReportId === r._id
-                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      ? 'bg-orange-100 border-orange-300 text-orange-600'
                       : 'bg-secondary/40 border-border/50 hover:bg-secondary/70 text-muted-foreground'
                   )}
                 >
@@ -394,7 +394,7 @@ export default function ReportsPage() {
         {selectedReportId ? (
           isDetailLoading ? (
             <div className="flex items-center justify-center flex-grow py-40">
-              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
             </div>
           ) : activeReport ? (
             <div className="glass rounded-2xl p-8 card-glow space-y-6 flex-grow animate-fade-in print:bg-white print:text-black print:border-none print:shadow-none">
@@ -456,7 +456,7 @@ export default function ReportsPage() {
                       <button
                         onClick={() => regenerateMutation.mutate(activeReport._id)}
                         disabled={regenerateMutation.isPending}
-                        className="px-2.5 py-1.5 bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 rounded-lg text-[10px] font-bold disabled:opacity-50"
+                        className="px-2.5 py-1.5 bg-orange-100 border border-orange-200 text-orange-600 hover:bg-orange-200 rounded-lg text-[10px] font-bold disabled:opacity-50"
                       >
                         {regenerateMutation.isPending ? 'Regenerating...' : 'Regenerate'}
                       </button>
@@ -510,7 +510,7 @@ export default function ReportsPage() {
               </div>
 
               {exportMessage && (
-                <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs flex items-center gap-2 animate-fade-in print:hidden">
+                <div className="p-3 bg-orange-100 border border-orange-200 text-orange-600 rounded-xl text-xs flex items-center gap-2 animate-fade-in print:hidden">
                   <Cpu className="w-4 h-4 flex-shrink-0" />
                   <span>{exportMessage}</span>
                 </div>
@@ -534,7 +534,7 @@ export default function ReportsPage() {
                   {activeReport.content.executiveSummary && (
                     <div className="space-y-2">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 print:text-black">
-                        <FileText className="w-4 h-4 text-primary" /> Executive Summary
+                        <FileText className="w-4 h-4 text-orange-500" /> Executive Summary
                       </h3>
                       <p className="text-foreground/90 text-sm leading-relaxed whitespace-pre-wrap print:text-black">{activeReport.content.executiveSummary}</p>
                     </div>
@@ -622,7 +622,7 @@ export default function ReportsPage() {
                                     <span className="font-semibold text-foreground">{item.count} customers (Avg LTV: ${Math.round(item.avgLTV || 0).toLocaleString()})</span>
                                   </div>
                                   <div className="w-full bg-secondary rounded-full h-1.5">
-                                    <div className="bg-primary h-1.5 rounded-full" style={{ width: `${Math.min(100, (item.count / 300) * 100)}%` }} />
+                                    <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, (item.count / 300) * 100)}%` }} />
                                   </div>
                                 </div>
                               ))}
@@ -681,8 +681,8 @@ export default function ReportsPage() {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {activeReport.content.recommendations.map((rec, idx) => (
-                          <div key={idx} className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-sm text-foreground/90 print:bg-white print:border-black print:text-black">
-                            <p className="font-semibold text-primary mb-1 print:text-black">Action {idx + 1}</p>
+                          <div key={idx} className="p-4 rounded-xl bg-orange-50 border border-orange-200 text-sm text-foreground/90 print:bg-white print:border-black print:text-black">
+                            <p className="font-semibold text-orange-600 mb-1 print:text-black">Action {idx + 1}</p>
                             <p>{rec}</p>
                           </div>
                         ))}
@@ -696,15 +696,15 @@ export default function ReportsPage() {
         ) : (
           /* Empty/Initial State */
           <div className="glass rounded-2xl p-10 card-glow flex flex-col items-center justify-center text-center flex-grow py-40 animate-fade-in">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-6">
-              <BookOpen className="w-8 h-8 text-primary" />
+            <div className="w-16 h-16 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center mb-6">
+              <BookOpen className="w-8 h-8 text-orange-500" />
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">No Report Selected</h2>
             <p className="text-muted-foreground max-w-md mb-6">
               Select an existing intelligence report from the history on the left, or configure parameters and generate a new report.
             </p>
             <div className="flex items-center gap-2 p-3 bg-secondary/50 rounded-xl border border-border text-xs text-muted-foreground max-w-lg">
-              <Cpu className="w-4 h-4 text-primary flex-shrink-0" />
+              <Cpu className="w-4 h-4 text-orange-500 flex-shrink-0" />
               <span>
                 <strong>Powered by the Executive Agent:</strong> AI constructs are strictly calculated based on database variables and validated parameters.
               </span>

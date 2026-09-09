@@ -97,7 +97,6 @@ export const errorHandler = (
     message,
     code,
     ...(fieldErrors ? { errors: fieldErrors } : {}),
-    error: process.env.NODE_ENV === 'development' && !isOperational ? err.message : undefined,
   };
 
   res.status(statusCode).json(response);

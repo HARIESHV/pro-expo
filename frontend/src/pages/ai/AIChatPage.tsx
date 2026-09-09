@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { chatApi } from '../../api/chat';
+import { documentsApi } from '../../api/documents';
 import { useAuth } from '../../auth/useAuth';
 import { Message, Conversation, IntelligenceResponse } from '../../types';
 import {
@@ -31,6 +32,7 @@ import { Markdown } from '../../components/ui/markdown';
 import { Button, IconButton } from '../../components/ui/button';
 import { Drawer } from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 
 const FAILURE_PATTERNS = [
   "couldn't retrieve a matching record",
@@ -68,7 +70,7 @@ function Section({ title, icon: Icon, children, badge }: {
         onClick={() => setOpen((v) => !v)}
         className="flex h-9 w-full items-center gap-2 px-3 text-left transition-colors hover:bg-secondary/70 rounded-xl"
       >
-        <Icon className="h-3.5 w-3.5 text-primary" />
+        <Icon className="h-3.5 w-3.5 text-orange-500" />
         <span className="text-[13px] font-medium text-foreground">{title}</span>
         {badge && <span className="text-[11px] text-muted-foreground">{badge}</span>}
         <span className="ml-auto text-muted-foreground">
@@ -154,16 +156,16 @@ function MessageRow({
   if (message._id === 'loading') {
     return (
       <div className="flex gap-3 message-enter">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-primary">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-orange-500">
           <Bot className="h-3.5 w-3.5" />
         </div>
         <div className="mt-1 flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5">
-          <Sparkles className="h-4 w-4 animate-spin text-primary" />
+          <Sparkles className="h-4 w-4 animate-spin text-orange-500" />
           <p className="mr-2 text-xs text-muted-foreground">Synthesizing intelligence response…</p>
           <div className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" style={{ animationDelay: '0ms' }} />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" style={{ animationDelay: '150ms' }} />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" style={{ animationDelay: '300ms' }} />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: '0ms' }} />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: '150ms' }} />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       </div>
@@ -173,7 +175,7 @@ function MessageRow({
   if (isUser) {
     return (
       <div className="flex justify-end message-enter">
-        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm leading-relaxed text-primary-foreground">
+        <div className="max-w-[86%] rounded-2xl rounded-br-md bg-orange-500 px-3.5 py-2 text-sm leading-relaxed text-white">
           {message.content}
         </div>
       </div>
@@ -186,7 +188,7 @@ function MessageRow({
 
   return (
     <div className="group flex gap-3 message-enter">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg gradient-brand">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-500">
         <Brain className="h-3.5 w-3.5 text-white" />
       </div>
       <div className="min-w-0 flex-1 space-y-1">
@@ -208,7 +210,7 @@ function MessageRow({
           )}
           {isLatest && (isStreaming || isStreamingMsg) && (
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Sparkles className="h-3 w-3 animate-spin text-primary" /> Streaming answer…
+              <Sparkles className="h-3 w-3 animate-spin text-orange-500" /> Streaming answer…
             </span>
           )}
         </div>
@@ -257,13 +259,20 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [analysisDocumentId, setAnalysisDocumentId] = useState<string | null>(null);
+  const [analysisDocumentStatus, setAnalysisDocumentStatus] = useState<'pending' | 'processing' | 'completed' | 'failed' | null>(null);
+  const analysisStartedRef = useRef(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const prefill = searchParams.get('q');
     const conv = searchParams.get('conv');
+    const documentId = searchParams.get('documentId');
+    if (documentId) setAnalysisDocumentId(documentId);
     if (prefill) {
       setInputValue(prefill);
       setSearchParams({}, { replace: true });
@@ -273,6 +282,25 @@ export default function AIChatPage() {
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  const { data: analysisDocumentData } = useQuery({
+    queryKey: ['document-analysis', analysisDocumentId],
+    queryFn: () => documentsApi.getDocument(analysisDocumentId!),
+    enabled: !!analysisDocumentId,
+    refetchInterval: (query) => {
+      const document = query.state.data?.data?.data?.document;
+      return document && (document.processingStatus === 'pending' || document.processingStatus === 'processing') ? 1200 : false;
+    },
+  });
+  const analysisDocument = analysisDocumentData?.data?.data?.document;
+
+  useEffect(() => {
+    if (analysisDocument) setAnalysisDocumentStatus(analysisDocument.analysisStatus || 'pending');
+  }, [analysisDocument]);
+
+  useEffect(() => {
+    analysisStartedRef.current = false;
+  }, [analysisDocumentId]);
 
   const { data: conversationsData } = useQuery({
     queryKey: ['conversations'],
@@ -311,12 +339,18 @@ export default function AIChatPage() {
 
   const deleteConversationMutation = useMutation({
     mutationFn: (id: string) => chatApi.deleteConversation(id),
-    onSuccess: () => {
-      if (activeConversationId) {
+    onSuccess: (_res, deletedId) => {
+      if (activeConversationId === deletedId) {
         setActiveConversationId(null);
         setMessages([]);
       }
+      queryClient.removeQueries({ queryKey: ['messages', deletedId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('AI document/chat deleted successfully');
+    },
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(apiErr.response?.data?.message || apiErr.message || 'Unable to delete conversation');
     },
   });
 
@@ -365,16 +399,25 @@ export default function AIChatPage() {
   };
 
   const sendMessageMutation = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
-      chatApi.sendMessage(conversationId, content),
+    mutationFn: ({ conversationId, content, documentId, analyzeDocument }: { conversationId: string; content: string; documentId?: string; analyzeDocument?: boolean }) =>
+      chatApi.sendMessage(conversationId, content, documentId, analyzeDocument),
     onSuccess: (res) => {
       const msg = res.data.data?.message;
+      const analyzedDocument = res.data.data?.document;
+      if (analyzedDocument) {
+        setAnalysisDocumentStatus(analyzedDocument.analysisStatus || 'pending');
+        queryClient.setQueryData(['document-analysis', analyzedDocument._id], res);
+      }
       if (msg) {
         streamMessageIntoState(msg);
       } else {
         setIsStreaming(false);
       }
-      setSendError(null);
+      if (analyzedDocument?.analysisStatus === 'failed') {
+        setSendError(analyzedDocument.analysisError || 'Document analysis failed. Please retry.');
+      } else {
+        setSendError(null);
+      }
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (err: unknown) => {
@@ -394,6 +437,10 @@ export default function AIChatPage() {
         msg = 'The AI service is currently busy. Please try again shortly.';
       } else if (status === 500) {
         msg = 'The AI service encountered an error. Please try again.';
+      } else if (status === 502) {
+        msg = 'The AI did not return a valid document answer. Please retry the analysis.';
+      } else if (status === 409) {
+        msg = 'This document is still being prepared or is already being analyzed. Please try again shortly.';
       } else if (!apiErr.response) {
         msg = 'Unable to connect to the AI server. Check your connection and try again.';
       }
@@ -442,11 +489,11 @@ export default function AIChatPage() {
 
     setSendError(null);
     setIsStreaming(true);
-    sendMessageMutation.mutate({ conversationId: activeConversationId!, content: lastUserMsg.content });
+    sendMessageMutation.mutate({ conversationId: activeConversationId!, content: lastUserMsg.content, documentId: analysisDocumentId || undefined, analyzeDocument: analysisDocumentStatus === 'failed' });
   };
 
-  const handleSend = async () => {
-    const content = inputValue.trim();
+  const handleSend = async (documentId?: string, contentOverride?: string, analyzeDocument = false) => {
+    const content = (contentOverride ?? inputValue).trim();
     if (!content || isStreaming) return;
 
     let convId = activeConversationId;
@@ -470,8 +517,28 @@ export default function AIChatPage() {
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setInputValue('');
     setIsStreaming(true);
-    sendMessageMutation.mutate({ conversationId: convId, content });
+    sendMessageMutation.mutate({ conversationId: convId, content, documentId, analyzeDocument });
   };
+
+  useEffect(() => {
+    if (
+      !analysisDocumentId ||
+      !analysisDocument ||
+      analysisStartedRef.current ||
+      isStreaming ||
+      analysisDocument.processingStatus !== 'completed' ||
+      analysisDocument.analysisStatus === 'completed'
+    ) return;
+
+    analysisStartedRef.current = true;
+    setAnalysisDocumentStatus('processing');
+    const analysisPrompt = `Analyze "${analysisDocument.title}" and summarize the key findings, risks, decisions, and recommended actions using only this document and authorized enterprise data.`;
+    setInputValue(analysisPrompt);
+    setTimeout(() => {
+      setInputValue('');
+      void handleSend(analysisDocumentId, analysisPrompt, true);
+    }, 0);
+  }, [analysisDocument, analysisDocumentId, isStreaming]);
 
   const onSelectConversation = (id: string) => {
     setActiveConversationId(id);
@@ -483,7 +550,7 @@ export default function AIChatPage() {
       <div className="p-3">
         <Button
           className="w-full gap-1.5"
-          variant="primary"
+          variant="outline"
           onClick={(e) => {
             e.stopPropagation();
             createConversationMutation.mutate(undefined);
@@ -516,10 +583,8 @@ export default function AIChatPage() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm('Delete this conversation?')) {
-                  deleteConversationMutation.mutate(conv._id);
-                  toast.info('Conversation deleted');
-                }
+                setDeleteTargetId(conv._id);
+                setDeleteConfirmOpen(true);
               }}
               className="absolute right-1.5 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:flex"
               title="Delete conversation"
@@ -555,10 +620,24 @@ export default function AIChatPage() {
             <Search className="h-4 w-4" />
           </IconButton>
           <div className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-primary" />
+            <Brain className="h-4 w-4 text-orange-500" />
             <p className="text-[13px] font-medium text-foreground">
               {activeConversationId ? 'Chat' : 'New chat'}
             </p>
+            {analysisDocument && (
+              <div className="ml-2 flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground">
+                <FileText className="h-3 w-3 text-orange-500" />
+                <span className="max-w-[180px] truncate">{analysisDocument.fileName}</span>
+                <span className="text-border">|</span>
+                <span className={cn(
+                  analysisDocumentStatus === 'completed' && 'text-success',
+                  analysisDocumentStatus === 'failed' && 'text-destructive',
+                  analysisDocumentStatus === 'processing' && 'text-orange-500'
+                )}>
+                  {analysisDocumentStatus === 'completed' ? 'Completed' : analysisDocumentStatus === 'failed' ? 'Failed' : analysisDocument.processingStatus !== 'completed' ? 'Preparing...' : 'Analyzing...'}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex-1" />
           {messages.length > 0 && (
@@ -597,7 +676,7 @@ export default function AIChatPage() {
             {messages.length === 0 ? (
               <div className="flex min-h-[60vh] flex-col items-center justify-center gap-8">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl gradient-brand shadow-card text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500 shadow-card text-white">
                     <Sparkles className="h-5 w-5" />
                   </div>
                   <div>
@@ -616,7 +695,7 @@ export default function AIChatPage() {
                       onClick={() => setInputValue(q.text)}
                       className="group flex items-start gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 text-left transition-colors hover:bg-secondary"
                     >
-                      <q.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                      <q.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-orange-500" />
                       <span className="text-[13px] text-secondary-foreground">{q.text}</span>
                     </button>
                   ))}
@@ -671,7 +750,7 @@ export default function AIChatPage() {
                     if (isStreaming) {
                       handleStop();
                     } else {
-                      handleSend();
+                      handleSend(analysisDocumentId || undefined);
                     }
                   }
                 }}
@@ -682,9 +761,10 @@ export default function AIChatPage() {
               />
               <Button
                 size="icon"
-                onClick={isStreaming ? handleStop : handleSend}
+                onClick={() => (isStreaming ? handleStop() : handleSend(analysisDocumentId || undefined))}
                 disabled={!isStreaming && !inputValue.trim()}
-                variant={isStreaming ? 'destructive' : 'primary'}
+                variant={isStreaming ? 'destructive' : 'outline'}
+                className={!isStreaming ? 'bg-orange-500 text-white hover:bg-orange-600 border-orange-500' : ''}
                 aria-label={isStreaming ? 'Stop generation' : 'Send message'}
                 title={isStreaming ? 'Stop generation' : 'Send message'}
               >
@@ -701,6 +781,25 @@ export default function AIChatPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete conversation"
+        description="Are you sure you want to delete this chat? This action cannot be undone."
+        confirmLabel="Delete"
+        loading={deleteConversationMutation.isPending}
+        onConfirm={() => {
+          if (deleteTargetId) {
+            deleteConversationMutation.mutate(deleteTargetId, {
+              onSuccess: () => {
+                setDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+              },
+            });
+          }
+        }}
+      />
     </div>
   );
 }
