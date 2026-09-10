@@ -15,6 +15,25 @@ export class AppError extends Error {
   }
 }
 
+function isMongoConnectionError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const name = (err as { name?: string }).name;
+  if (!name) return false;
+  // Mongoose-wrapped errors
+  if (name === 'MongooseServerSelectionError') return true;
+  if (name === 'MongooseConnectionError') return true;
+  if (name === 'MongoNotConnectedError') return true;
+  // Raw MongoDB driver errors
+  if (name === 'MongoServerSelectionError') return true;
+  if (name === 'MongoNetworkTimeoutError') return true;
+  if (name === 'MongoNetworkError') return true;
+  if (name === 'MongoTimeoutError') return true;
+  // Connection-related error messages
+  const message = (err as { message?: string }).message || '';
+  if (message.includes('ECONNREFUSED') || message.includes('ETIMEDOUT') || message.includes('querySrv ETIMEOUT')) return true;
+  return false;
+}
+
 export const errorHandler = (
   err: Error | AppError,
   req: Request,
@@ -63,8 +82,8 @@ export const errorHandler = (
     isOperational = true;
   }
 
-  // Database unreachable / replica-set election -> 503
-  if (err.name === 'MongooseServerSelectionError') {
+  // Database unreachable / replica-set election / connection timeout -> 503
+  if (isMongoConnectionError(err)) {
     statusCode = 503;
     code = 'DATABASE_UNAVAILABLE';
     message = 'Database is temporarily unavailable. Please try again shortly.';
