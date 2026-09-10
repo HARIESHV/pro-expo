@@ -58,9 +58,7 @@ axiosInstance.interceptors.response.use(
     const isPublicEndpoint = typeof originalRequest.url === 'string' && (
       originalRequest.url.includes('/contact') ||
       originalRequest.url.includes('/auth/login') ||
-      originalRequest.url.includes('/auth/register') ||
-      originalRequest.url.includes('/auth/send-otp') ||
-      originalRequest.url.includes('/auth/verify-otp')
+      originalRequest.url.includes('/auth/register')
     );
     if (isPublicEndpoint) {
       return Promise.reject(error);

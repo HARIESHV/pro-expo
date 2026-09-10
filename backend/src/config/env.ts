@@ -44,16 +44,6 @@ const envSchema = z.object({
   CONTACT_RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   CONTACT_RATE_LIMIT_MAX: z.string().default('5'),
   ADMIN_REPORT_UPLOAD_DIR: z.string().default('./uploads/reports'),
-  // Gmail SMTP — used ONLY for user sign-in OTP delivery (never admin auth, never Resend)
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.string().optional(),
-  SMTP_SECURE: z.string().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().optional(),
-  // OTP security
-  OTP_EXPIRES_MINUTES: z.string().default('5'),
-  OTP_MAX_ATTEMPTS: z.string().default('5'),
 });
 
 const parsed = envSchema.safeParse(process.env);

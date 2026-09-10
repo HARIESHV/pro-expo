@@ -14,7 +14,6 @@ import { connectDatabase, ensureDefaultOrganization } from './config/database';
 import { env } from './config/env';
 import { logger } from './config/logger';
 import { seedCompanies, syncCompanyIndexes } from './services/companyDataService';
-import { isSmtpConfigured } from './services/emailService';
 
 const PORT = parseInt(env.PORT, 10);
 
@@ -90,15 +89,8 @@ async function bootstrap(): Promise<void> {
     logger.info(`MongoDB: ${dbConnected ? 'connected' : 'disconnected'}`);
     logger.info(`Authentication: ready`);
     logger.info(`AI provider: ${aiConfigured ? 'configured (' + env.GROQ_MODEL + ')' : 'not_configured'}`);
-    logger.info(`Web search: configured`);
-    logger.info(`Contact email: Resend ${env.RESEND_API_KEY && env.RESEND_FROM_EMAIL && env.ADMIN_EMAIL ? 'configured' : 'not_configured'}`);
-    if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL || !env.ADMIN_EMAIL) {
-      logger.warn('⚠️  Contact form will fail — missing RESEND_API_KEY / RESEND_FROM_EMAIL / ADMIN_EMAIL. Set them in backend/.env and restart.');
-    }
-    logger.info(`Sign-in OTP email: SMTP ${isSmtpConfigured() ? 'configured' : 'not_configured'}`);
-    if (!isSmtpConfigured()) {
-      logger.warn('⚠️  Gmail OTP sign-in will fail — missing SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASSWORD / SMTP_FROM. Set them in backend/.env and restart.');
-    }
+logger.info(`Web search: configured`);
+    logger.info(`Contact email: Resend ${Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL && env.ADMIN_EMAIL) ? 'configured' : 'not_configured'}`);
     logger.info('------------------------------------');
 
     if (dbConnected) {

@@ -11,7 +11,6 @@ import mongoose from 'mongoose';
 import { env } from './config/env';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { logger } from './config/logger';
-import { isSmtpConfigured } from './services/emailService';
 
 // Routes
 import authRoutes from './routes/auth';
@@ -94,7 +93,6 @@ app.get('/api/health', (_req, res) => {
   const dbConnected = mongoose.connection.readyState === 1;
   const aiConfigured = !!env.GROQ_API_KEY;
   const contactConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL && env.ADMIN_EMAIL);
-  const otpEmailConfigured = isSmtpConfigured();
   res.json({
     success: true,
     message: 'Backend server is running',
@@ -102,7 +100,6 @@ app.get('/api/health', (_req, res) => {
     database: dbConnected ? 'connected' : 'disconnected',
     ai: aiConfigured ? 'configured' : 'not_configured',
     contactEmail: contactConfigured ? 'configured' : 'not_configured',
-    otpEmail: otpEmailConfigured ? 'configured' : 'not_configured',
   });
 });
 

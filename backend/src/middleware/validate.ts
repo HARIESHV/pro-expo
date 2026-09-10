@@ -38,30 +38,6 @@ export const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
 });
 
-export const sendOtpSchema = z.object({
-  email: z
-    .string({ required_error: 'Email address is required' })
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address')
-    .max(254, 'Email address is too long')
-    .refine((val) => GMAIL_REGEX.test(val), GMAIL_ERROR_MESSAGE),
-});
-
-export const verifyOtpSchema = z.object({
-  email: z
-    .string({ required_error: 'Email address is required' })
-    .trim()
-    .toLowerCase()
-    .email('Please enter a valid email address')
-    .max(254, 'Email address is too long')
-    .refine((val) => GMAIL_REGEX.test(val), GMAIL_ERROR_MESSAGE),
-  otp: z
-    .string({ required_error: 'OTP is required' })
-    .trim()
-    .regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
-});
-
 export function validate(schema: z.ZodObject<z.ZodRawShape>, message = 'Invalid request data') {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.body);

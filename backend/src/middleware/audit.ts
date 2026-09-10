@@ -3,7 +3,7 @@ import { AuditLog } from '../models/AuditLog';
 import { logger } from '../config/logger';
 
 export const auditMiddleware = (action: string, resource: string) => {
-  const SENSITIVE_FIELDS = new Set(['password', 'confirmPassword', 'newPassword', 'currentPassword', 'token', 'accessToken', 'refreshToken', 'otp', 'verificationCode', 'code']);
+  const SENSITIVE_FIELDS = new Set(['password', 'confirmPassword', 'newPassword', 'currentPassword', 'token', 'accessToken', 'refreshToken']);
 
   function redact(body: unknown): unknown {
     if (!body || typeof body !== 'object') return body;
